@@ -1,0 +1,915 @@
+<title>چاپار</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Aref+Ruqaa:wght@400;700&family=Noto+Nastaliq+Urdu:wght@400;600&family=Vazirmatn:wght@400;600;800&display=swap">
+<style>
+/* Layout: a hand-drawn village map fills the stage; the courier's satchel of envelopes sits beside it. One warm, sunlit paper world by design; night falls only as part of play. */
+:root {
+  --paper: #f3e8cf;        /* sun-bleached paper */
+  --paper-2: #e8d8b4;      /* folded, older paper */
+  --ink: #2b2016;          /* iron-gall ink */
+  --ink-2: #6a5640;        /* faded ink */
+  --line: #cfb88f;         /* ruled lines */
+  --wax: #a3281c;          /* sealing wax, the one accent */
+  --teal: #2f6e69;         /* turquoise tile, for trust */
+  --gold: #b8872b;         /* brass */
+  --night: #121834;
+  --f-display: "Aref Ruqaa", "Noto Nastaliq Urdu", serif;
+  --f-letter: "Noto Nastaliq Urdu", "Aref Ruqaa", serif;
+  --f-ui: "Vazirmatn", system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif;
+  color-scheme: light;
+}
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body {
+  margin: 0; direction: rtl; font-family: var(--f-ui); color: var(--ink); font-size: 15px; line-height: 1.7;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .4  0 0 0 0 .3  0 0 0 0 .15  0 0 0 .16 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+    radial-gradient(ellipse at 50% 0%, #f7eed9, #e6d4ad 90%);
+  background-color: #eadbb9;
+}
+button { font-family: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 3px solid var(--teal); outline-offset: 2px; }
+
+.app { max-width: 1320px; margin: 0 auto; padding: 12px 16px 24px; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; min-height: 100%; }
+header.top { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.brand { font-family: var(--f-display); font-weight: 700; font-size: 40px; line-height: 1; color: var(--wax); margin: 0; }
+.brand small { display: block; font-family: var(--f-ui); font-weight: 400; font-size: 12px; color: var(--ink-2); margin-top: 6px; }
+.days { display: flex; gap: 6px; align-items: center; }
+.days i { width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid var(--ink-2); display: block; }
+.days i.done { background: var(--ink-2); }
+.days i.now { background: var(--wax); border-color: var(--wax); box-shadow: 0 0 0 3px #a3281c33; }
+.dayname { font-family: var(--f-display); font-size: 22px; font-weight: 700; }
+.stat { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); }
+.rep { width: 110px; height: 8px; border-radius: 4px; background: #d8c59e; overflow: hidden; }
+.rep i { display: block; height: 100%; background: linear-gradient(90deg, var(--wax), var(--gold) 50%, var(--teal)); transition: width .6s; }
+.wax { display: flex; gap: 3px; }
+.wax b { width: 8px; height: 18px; border-radius: 3px 3px 2px 2px; background: linear-gradient(90deg, #7a1c13, #c23a2a 60%, #8a2016); display: block; }
+.wax b.gone { background: #d8c59e; }
+.acts { display: flex; gap: 8px; flex-wrap: wrap; margin-inline-start: auto; }
+.btn { border: 1.5px solid var(--ink); background: transparent; border-radius: 10px; padding: 7px 14px; font-size: 14px; font-weight: 600; }
+.btn:hover { background: #2b20160d; }
+.btn.primary { background: var(--wax); color: #fff5e6; border-color: var(--wax); box-shadow: 0 6px 16px -8px #a3281c; }
+.btn.primary:hover { filter: brightness(1.08); background: var(--wax); }
+.btn.teal { background: var(--teal); border-color: var(--teal); color: #f3fffd; }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+
+main.stage { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 14px; align-items: start; }
+.mapbox { position: relative; border-radius: 16px; overflow: hidden; border: 1.5px solid #b89d6e; box-shadow: 0 20px 40px -24px #5a3d1a; background: #cfe0d6; }
+svg.map { display: block; width: 100%; height: auto; }
+.map text { font-family: var(--f-ui); }
+.map .lbl { font-size: 13px; font-weight: 600; fill: #3a2b1c; paint-order: stroke; stroke: #f3e8cf; stroke-width: 4px; stroke-linejoin: round; text-anchor: middle; }
+.map .loc { cursor: pointer; }
+.map .loc:hover .lbl { fill: var(--wax); }
+.map .win { fill: #6a4b2e; transition: fill 1.2s; }
+.night .map .win { fill: #ffce6b; filter: url(#glow); }
+.map .river { fill: none; stroke: #6fa9b3; stroke-width: 14; stroke-linecap: round; }
+.map .river2 { fill: none; stroke: #a9d3d6; stroke-width: 4; stroke-dasharray: 10 14; stroke-linecap: round; animation: flow 3.5s linear infinite; }
+@keyframes flow { to { stroke-dashoffset: -48; } }
+.map .road { fill: none; stroke: #e9d3a3; stroke-width: 9; stroke-linecap: round; stroke-linejoin: round; }
+.map .road2 { fill: none; stroke: #d4b98a; stroke-width: 1.5; stroke-dasharray: 3 6; }
+.map .wheel { transform-box: fill-box; transform-origin: center; animation: spin 7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.map .smoke { fill: #fff; opacity: 0; animation: smoke 5s ease-out infinite; }
+@keyframes smoke { 0% { opacity: .5; transform: translate(0, 0) scale(.6); } 100% { opacity: 0; transform: translate(-10px, -34px) scale(1.8); } }
+.map .cloud { animation: drift 90s linear infinite; }
+@keyframes drift { from { transform: translateX(-120px); } to { transform: translateX(920px); } }
+.map .sheep { animation: graze 3s ease-in-out infinite alternate; }
+@keyframes graze { to { transform: translateX(6px); } }
+.map .badge { pointer-events: none; }
+.map .badge rect { fill: var(--wax); }
+.map .badge text { fill: #fff5e6; font-size: 12px; font-weight: 800; text-anchor: middle; }
+.map .badge { animation: bob 1.4s ease-in-out infinite; }
+@keyframes bob { 50% { transform: translateY(-4px); } }
+.map .brick { cursor: pointer; animation: glint 1.6s ease-in-out infinite; }
+@keyframes glint { 50% { filter: drop-shadow(0 0 6px #ffd98a) brightness(1.3); } }
+#nightRect { transition: opacity 1.6s; pointer-events: none; }
+.night #nightRect { opacity: .72; }
+@media (max-width: 640px) { .mapbox { overflow-x: auto; } svg.map { min-width: 640px; } }
+.maphint { position: absolute; inset-inline: 12px; top: 10px; pointer-events: none; font-size: 12.5px; color: #3a2b1c; background: #f3e8cfd9; border-radius: 8px; padding: 4px 10px; width: fit-content; max-width: calc(100% - 24px); }
+
+aside.satchel { background: linear-gradient(180deg, #8a5a33, #6f4526); border-radius: 18px; padding: 14px; color: #f6e7c8; box-shadow: inset 0 2px 0 #ffffff22, 0 20px 40px -20px #3a220f; position: relative; }
+aside.satchel::before { content: ""; position: absolute; inset: 6px; border: 2px dashed #f6e7c855; border-radius: 13px; pointer-events: none; }
+.satchel h2 { font-family: var(--f-display); font-weight: 700; font-size: 26px; margin: 0 0 2px; }
+.satchel .sub { font-size: 12.5px; opacity: .8; margin: 0 0 10px; }
+.env-list { display: flex; flex-direction: column; gap: 10px; position: relative; }
+.env { position: relative; display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 10px; align-items: center; text-align: start; width: 100%;
+  background: linear-gradient(170deg, #f8efdc, #eadbb9); color: var(--ink); border: 0; border-radius: 6px; padding: 10px 12px; box-shadow: 0 6px 12px -6px #2a150699;
+  transition: transform .2s; }
+.env:hover { transform: translateY(-2px) rotate(-.4deg); }
+.env::after { content: ""; position: absolute; inset: 0; border-radius: 6px; pointer-events: none;
+  background: linear-gradient(155deg, transparent 49.4%, #cdb68a55 50%, transparent 50.6%), linear-gradient(25deg, transparent 49.4%, #cdb68a55 50%, transparent 50.6%); }
+.env .who { font-weight: 700; font-size: 14px; }
+.env .to { font-size: 12.5px; color: var(--ink-2); }
+.env .tags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 2px; }
+.tag { font-size: 11px; border-radius: 999px; padding: 0 8px; border: 1px solid currentColor; }
+.tag.red { color: var(--wax); } .tag.teal { color: var(--teal); } .tag.gold { color: #8a6418; }
+.env.forme { background: linear-gradient(170deg, #fff6e0, #f1dfb0); outline: 2px solid var(--gold); }
+.empty-bag { text-align: center; font-size: 13px; opacity: .85; padding: 18px 8px; }
+
+.seal { position: relative; width: 44px; height: 44px; flex: none; }
+.seal .half { position: absolute; inset: 0; transition: transform .6s cubic-bezier(.2, 1.4, .4, 1); }
+.seal .L { clip-path: polygon(0 0, 54% 0, 44% 40%, 56% 60%, 46% 100%, 0 100%); }
+.seal .R { clip-path: polygon(54% 0, 100% 0, 100% 100%, 46% 100%, 56% 60%, 44% 40%); }
+.seal.broken .L { transform: translate(-5px, 3px) rotate(-14deg); }
+.seal.broken .R { transform: translate(5px, 4px) rotate(12deg); }
+.seal svg { width: 100%; height: 100%; display: block; }
+.seal.big { width: 86px; height: 86px; }
+
+/* overlays */
+.ov { position: fixed; inset: 0; z-index: 20; display: flex; align-items: flex-start; justify-content: center; padding: 16px; overflow: auto; background: #1d130acc; backdrop-filter: blur(3px); }
+.ov > .sheet { margin-block: auto; }
+.sheet { width: min(640px, 100%); box-sizing: border-box; background: var(--paper); border-radius: 14px; padding: 22px 22px; box-shadow: 0 40px 80px -20px #000a; position: relative; }
+.sheet h2, .sheet h3 { font-family: var(--f-display); font-weight: 700; margin: 0; }
+.sheet h2 { font-size: 34px; line-height: 1.2; color: var(--wax); }
+.sheet h3 { font-size: 22px; }
+.close { position: absolute; top: 10px; inset-inline-end: 12px; border: 0; background: none; font-size: 22px; color: var(--ink-2); width: 36px; height: 36px; border-radius: 50%; }
+.close:hover { background: #2b201611; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.note { font-size: 12.5px; color: var(--ink-2); margin: 0; }
+
+/* the desk: envelope and letter */
+.desk { width: min(700px, 100%); background: linear-gradient(180deg, #6d4527, #5a381f); color: #f6e7c8; }
+.desk .note { color: #e9d5ad; }
+.envelope { position: relative; margin: 8px auto 14px; width: min(460px, 100%); aspect-ratio: 16 / 10; background: linear-gradient(170deg, #f8efdc, #e3d0a8); border-radius: 6px; color: var(--ink); box-shadow: 0 16px 30px -12px #0009; display: grid; place-items: center; }
+.envelope::before { content: ""; position: absolute; inset: 0; border-radius: 6px; background: linear-gradient(158deg, transparent 49.6%, #b99f6f 50%, transparent 50.5%), linear-gradient(22deg, transparent 49.6%, #b99f6f 50%, transparent 50.5%); opacity: .6; }
+.envelope .addr { position: absolute; inset-inline-start: 18px; bottom: 14px; font-family: var(--f-letter); font-size: 15px; line-height: 2.2; }
+.envelope .from { position: absolute; inset-inline-end: 18px; top: 12px; font-size: 12px; color: var(--ink-2); }
+.envelope .seal { z-index: 1; }
+.paper { position: relative; margin: 6px auto 14px; width: min(560px, 100%); box-sizing: border-box; color: var(--ink); padding: 26px 26px 22px; border-radius: 3px;
+  background: repeating-linear-gradient(180deg, transparent 0 47px, #cdb68a44 47px 48px), linear-gradient(175deg, #fbf4e3, #efe2c3 70%, #e6d4ad);
+  box-shadow: 0 18px 30px -14px #000b; transform-origin: top; animation: unfold .7s cubic-bezier(.2, .8, .2, 1); }
+@keyframes unfold { from { transform: perspective(900px) rotateX(-70deg); opacity: 0; } to { transform: none; opacity: 1; } }
+.paper .body { font-family: var(--f-letter); font-size: 17px; line-height: 2.75; white-space: pre-wrap; overflow-wrap: anywhere; }
+.paper .sig { font-family: var(--f-display); font-size: 20px; text-align: start; margin-top: 4px; color: #4a3521; }
+.paper .scribe { font-size: 11.5px; color: var(--ink-2); }
+.paper.forged::after { content: "دست‌نوشته‌ی تو"; position: absolute; top: 10px; inset-inline-end: 12px; font-size: 11px; color: var(--wax); border: 1px dashed var(--wax); border-radius: 6px; padding: 0 6px; transform: rotate(-4deg); }
+.paper.old { background: repeating-linear-gradient(180deg, transparent 0 47px, #b99a6644 47px 48px), linear-gradient(175deg, #efdfba, #dcc594 70%, #cfb47d); }
+textarea, select, input[type=text] { font: inherit; font-size: 15px; color: var(--ink); background: #fffaf0; border: 1.5px solid #bfa77c; border-radius: 10px; padding: 10px 12px; box-sizing: border-box; width: 100%; }
+textarea { resize: vertical; min-height: 180px; line-height: 2; font-family: var(--f-ui); }
+label.f { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; }
+.desk-acts { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.desk .btn { border-color: #f6e7c8; color: #f6e7c8; }
+.desk .btn:hover { background: #ffffff14; }
+.desk .btn.primary { background: #f6e7c8; color: #3a220f; border-color: #f6e7c8; }
+.desk .btn.danger { border-color: #ff9d7a; color: #ffc3ad; }
+
+/* burning */
+.burn-wrap { position: relative; }
+.burning .paper, .burning .envelope { animation: burn 1.8s ease-in forwards; }
+@keyframes burn { 0% { clip-path: inset(0 0 0 0); filter: none; } 20% { filter: sepia(.6) brightness(1.1); } 100% { clip-path: inset(100% 0 0 0); filter: sepia(1) brightness(.5); } }
+.flame { position: absolute; inset-inline: 10%; height: 18px; bottom: 0; background: radial-gradient(ellipse at 50% 100%, #fff3a0, #ff9a2a 40%, #e2401a 70%, transparent 75%); filter: blur(2px); animation: rise 1.8s ease-in forwards; pointer-events: none; }
+@keyframes rise { to { bottom: 100%; opacity: .4; } }
+.ember { position: absolute; width: 5px; height: 5px; border-radius: 50%; background: #ffb347; box-shadow: 0 0 8px #ff7a1a; animation: ember 1.6s ease-out forwards; pointer-events: none; }
+@keyframes ember { to { transform: translate(var(--dx), -140px); opacity: 0; } }
+
+/* morning news sheet */
+.news { width: min(720px, 100%); }
+.news .mast { text-align: center; border-bottom: 3px double var(--ink); padding-bottom: 6px; margin-bottom: 12px; }
+.news .mast small { display: block; font-size: 12px; color: var(--ink-2); }
+.news .mast b { font-family: var(--f-display); font-size: 30px; }
+.news .head { font-family: var(--f-display); font-size: 26px; font-weight: 700; line-height: 1.5; text-align: center; margin: 4px 0 12px; text-wrap: balance; }
+.news .cols { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 16px; }
+.news h4 { margin: 0 0 6px; font-size: 13px; letter-spacing: .02em; color: var(--ink-2); border-bottom: 1px solid var(--line); padding-bottom: 2px; }
+.react { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 8px; margin-bottom: 10px; font-size: 14px; line-height: 1.9; }
+.gossip { margin: 0; padding-inline-start: 18px; font-size: 13.5px; line-height: 1.9; }
+.delta { font-size: 13px; display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px dotted var(--line); padding: 3px 0; }
+.up { color: var(--teal); font-weight: 700; } .down { color: var(--wax); font-weight: 700; }
+
+.face { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-family: var(--f-display); font-weight: 700; font-size: 18px; color: #fff8ea; background: var(--c); box-shadow: 0 0 0 2px var(--paper), 0 0 0 3px var(--c); flex: none; }
+
+/* night */
+.nightov { background: radial-gradient(ellipse at 50% 30%, #1b2450f0, #070a18f5 70%); color: #f2e6cc; align-items: center; }
+.nightov .sheet { background: transparent; box-shadow: none; text-align: center; color: #f2e6cc; }
+.lamp { width: 90px; height: 120px; margin: 0 auto 10px; position: relative; }
+.lamp .glass { position: absolute; left: 25px; top: 30px; width: 40px; height: 56px; border-radius: 16px 16px 10px 10px; background: radial-gradient(ellipse at 50% 60%, #fff3b0, #ffb347 40%, #ff7a1a33 75%); box-shadow: 0 0 60px 20px #ffb34755; animation: flicker 2.2s infinite; }
+.lamp .cap { position: absolute; left: 30px; top: 18px; width: 30px; height: 14px; border-radius: 6px 6px 0 0; background: #6b4a2e; }
+.lamp .base { position: absolute; left: 22px; top: 84px; width: 46px; height: 12px; border-radius: 4px; background: #6b4a2e; }
+@keyframes flicker { 0%, 100% { opacity: 1; } 40% { opacity: .82; } 55% { opacity: .95; } 70% { opacity: .78; } }
+.nightov .line { font-family: var(--f-letter); font-size: 18px; line-height: 2.4; min-height: 2.6em; transition: opacity .5s; }
+.nightov .err { color: #ffb7a0; font-size: 14px; }
+
+/* book */
+.book { width: min(820px, 100%); }
+.book .grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+svg.web { width: 100%; height: auto; display: block; }
+.web text { font-family: var(--f-ui); }
+.arch { display: flex; flex-direction: column; gap: 8px; max-height: 420px; overflow: auto; padding-inline-end: 4px; }
+.arch details { background: #fbf4e3; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; }
+.arch summary { cursor: pointer; font-size: 13.5px; font-weight: 600; }
+.arch p { font-family: var(--f-letter); font-size: 14px; line-height: 2.4; margin: 6px 0 0; white-space: pre-wrap; }
+.chron { font-size: 13.5px; line-height: 1.9; margin: 0; padding-inline-start: 18px; }
+
+/* title & ending */
+.title-sheet { width: min(620px, 100%); text-align: center; background: linear-gradient(180deg, #fbf4e3, #eddcb6); }
+.title-sheet h1 { font-family: var(--f-display); font-weight: 700; font-size: clamp(64px, 17vw, 110px); line-height: 1.1; margin: 0; color: var(--wax); }
+.title-sheet .tag-line { font-family: var(--f-letter); font-size: 17px; line-height: 2.4; margin: 4px 0 8px; }
+.title-sheet p { margin: 0 auto 10px; max-width: 48ch; line-height: 2; }
+.rules { text-align: start; background: #fffaf0; border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; font-size: 13.5px; line-height: 2; margin: 10px 0 14px; }
+.rules b { color: var(--wax); }
+.stars { font-size: 30px; color: var(--gold); letter-spacing: 4px; }
+.fate { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 10px; margin-bottom: 10px; font-size: 14px; line-height: 1.9; text-align: start; }
+.toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 40; background: var(--ink); color: var(--paper); border-radius: 12px; padding: 10px 16px; font-size: 14px; max-width: min(520px, calc(100vw - 32px)); box-shadow: 0 10px 30px #0006; }
+
+@media (max-width: 900px) {
+  main.stage { grid-template-columns: minmax(0, 1fr); }
+  .news .cols, .book .grid { grid-template-columns: minmax(0, 1fr); }
+  .brand { font-size: 34px; }
+  .acts { margin-inline-start: 0; width: 100%; }
+  .acts .btn { flex: 1; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+
+<div class="app" id="app">
+  <header class="top">
+    <h1 class="brand">چاپار<small>دهِ سنگ‌چین · هفت روز</small></h1>
+    <div>
+      <div class="dayname" id="dayName">روز اول</div>
+      <div class="days" id="days" aria-label="روزها"></div>
+    </div>
+    <div class="stat">آبرو <div class="rep"><i id="rep"></i></div></div>
+    <div class="stat">موم <div class="wax" id="wax"></div></div>
+    <div class="acts">
+      <button class="btn" id="bookBtn" type="button">دفتر چاپار</button>
+      <button class="btn" id="anonBtn" type="button">نوشتن نامه</button>
+      <button class="btn primary" id="endBtn" type="button">شب می‌شود</button>
+    </div>
+  </header>
+
+  <main class="stage">
+    <div class="mapbox" id="mapbox">
+      <svg class="map" id="map" viewBox="0 0 820 500" role="img" aria-label="نقشه‌ی دهِ سنگ‌چین"></svg>
+      <div class="maphint" id="maphint">روی هر نامه در خورجین بزن. خانه‌هایی که پرچم سرخ دارند منتظر نامه‌اند.</div>
+    </div>
+    <aside class="satchel" aria-label="خورجین">
+      <h2>خورجین</h2>
+      <p class="sub" id="bagSub">نامه‌های امروز</p>
+      <div class="env-list" id="bag"></div>
+    </aside>
+  </main>
+</div>
+
+<!-- title -->
+<div class="ov" id="titleOv">
+  <div class="sheet title-sheet">
+    <h1>چاپار</h1>
+    <div class="tag-line">هر نامه‌ای در این ده، از دستِ تو می‌گذرد.</div>
+    <p>تو چاپارِ تازه‌ی دهِ سنگ‌چینی. چاپارِ قبلی، مش رحیم، یک هفته پیش بی‌خبر غیبش زد. شش آدم، شش راز، و هفت روز. آنچه به دستِ هر کس می‌رسد، همان است که تو بخواهی.</p>
+    <div class="rules">
+      <div>✉ نامه را <b>تحویل بده</b>، یا مهرش را <b>بشکن و بخوان</b>.</div>
+      <div>🕯 با <b>موم</b> دوباره مهرش کن تا کسی نفهمد. موم کم است.</div>
+      <div>✎ نامه را <b>بازنویسی کن</b>، <b>نگه دار</b> یا <b>بسوزان</b>. روزی یک نامه هم خودت بنویس.</div>
+      <div>🌙 شب، اهالی فقط به آنچه واقعاً به دستشان رسیده واکنش نشان می‌دهند و نامه‌های فردا را می‌نویسند. اگر مهرِ شکسته یا جعلِ ناشیانه ببینند، به تو شک می‌کنند.</div>
+    </div>
+    <div class="row" style="justify-content:center">
+      <button class="btn primary" id="newBtn" type="button">شروع هفت روز</button>
+      <button class="btn" id="contBtn" type="button" hidden>ادامه</button>
+    </div>
+    <p class="note" style="margin-top:12px">شب‌ها ده با هوش مصنوعی زنده می‌شود. هر شب یک بار از Claude کمک می‌گیرد و بار اول اجازه می‌خواهد.</p>
+  </div>
+</div>
+
+<!-- desk -->
+<div class="ov" id="deskOv" hidden>
+  <div class="sheet desk" id="desk"></div>
+</div>
+
+<!-- write -->
+<div class="ov" id="anonOv" hidden>
+  <div class="sheet">
+    <button class="close" type="button" data-close="anonOv" aria-label="بستن">×</button>
+    <h3>نامه‌ای به خط خودت</h3>
+    <p class="note" style="margin:4px 0 12px">روزی یک نامه. می‌توانی بی‌امضا بفرستی یا به نام کس دیگری امضا کنی. جعلِ ناشیانه لو می‌رود.</p>
+    <div style="display:grid;gap:10px">
+      <label class="f" for="anonTo">برای
+        <select id="anonTo"></select></label>
+      <label class="f" for="anonAs">امضا به نامِ
+        <select id="anonAs"></select></label>
+      <label class="f" for="anonText">متن نامه
+        <textarea id="anonText" maxlength="900" placeholder="بنویس…"></textarea></label>
+      <div class="row"><button class="btn primary" id="anonSend" type="button">مهر کن و بگذار در خورجین</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- night -->
+<div class="ov nightov" id="nightOv" hidden>
+  <div class="sheet">
+    <div class="lamp" aria-hidden="true"><div class="cap"></div><div class="glass"></div><div class="base"></div></div>
+    <h3 style="font-size:28px;color:#ffd98a" id="nightTitle">شبِ اول</h3>
+    <p class="line" id="nightLine">چراغِ خانه‌ها یکی‌یکی روشن می‌شود…</p>
+    <p class="err" id="nightErr" hidden></p>
+    <div class="row" style="justify-content:center">
+      <button class="btn primary" id="nightRetry" type="button" hidden>دوباره</button>
+      <button class="btn" id="nightBack" type="button" hidden style="border-color:#f2e6cc;color:#f2e6cc">برگرد به روز</button>
+    </div>
+  </div>
+</div>
+
+<!-- morning -->
+<div class="ov" id="newsOv" hidden>
+  <div class="sheet news" id="news"></div>
+</div>
+
+<!-- book -->
+<div class="ov" id="bookOv" hidden>
+  <div class="sheet book" id="book"></div>
+</div>
+
+<!-- ending -->
+<div class="ov" id="endOv" hidden>
+  <div class="sheet title-sheet" id="ending"></div>
+</div>
+
+<div class="toast" id="toast" hidden role="status"></div>
+
+<script>
+(() => {
+  'use strict';
+  const $ = (id) => document.getElementById(id);
+  const fa = (s) => String(s).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[d]);
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const pick = (a) => a[Math.floor(Math.random() * a.length)];
+  const DAYS = ['اول', 'دوم', 'سوم', 'چهارم', 'پنجم', 'ششم', 'هفتم'];
+  const SAVE = 'chapar-save-v1';
+
+  // ================= World =================
+  const P = {
+    golnar: { name: 'بی‌بی گلنار', role: 'قابله‌ی پیرِ ده', c: '#8a5a2b', g: 'گ', loc: 'golnar', literate: false,
+      bio: 'Bibi Golnar, 70, the village midwife and matriarch; proud, warm, sharp-tongued, illiterate (Mirza Abbas reads and writes her letters). Her only son Farhad left for the city years ago; she believes he forgot her because no letter ever came. Javad keeps pressing her to sell her land. She raises her orphaned granddaughter Shirin and wants her married to someone with means, not a poor shepherd.' },
+    mirza: { name: 'میرزا عباس', role: 'معلمِ مکتب و کاتبِ ده', c: '#2f4f6f', g: 'م', loc: 'mirza', literate: true,
+      bio: 'Mirza Abbas, 50, schoolteacher and the village scribe: he writes and reads letters for those who cannot (Golnar, Hossein), so he knows many secrets and knows everyone\'s handwriting and phrasing. Poor, gentle, fond of poetry, tempted by Javad\'s money, but he has a conscience that keeps him awake. He suspects why Mash Rahim fled.' },
+    shirin: { name: 'شیرین', role: 'قالی‌باف، نوه‌ی بی‌بی', c: '#7a3b8f', g: 'ش', loc: 'shirin', literate: true,
+      bio: 'Shirin, 20, carpet weaver, Golnar\'s granddaughter; brave, dreamy, secretly in love with Hossein and he with her. Her grandmother disapproves. Best friend of Molouk.' },
+    javad: { name: 'کربلایی جواد', role: 'اربابِ باغ‌ها', c: '#a3281c', g: 'ج', loc: 'javad', literate: true, redSeal: true,
+      bio: 'Karbalaei Javad, 58, richest man in the village, owner of the orchards; pious in public, ruthless in private; seals with RED wax. He wants Hossein\'s riverside land (its water rights) and Golnar\'s land. SECRET: for years he paid the old courier Mash Rahim to intercept the letters between Golnar and her son Farhad, and he wrote to Farhad that his mother had disowned him. He is arranging his daughter Molouk\'s marriage to a city merchant.' },
+    molouk: { name: 'ملوک', role: 'دخترِ کربلایی جواد', c: '#c0652b', g: 'ل', loc: 'javad', literate: true,
+      bio: 'Molouk, 19, Javad\'s daughter; lively, gossipy, rebellious, loyal to Shirin. She is being married off to a city merchant she has never met and dreads it. She overhears her father\'s schemes.' },
+    hossein: { name: 'حسین', role: 'چوپان، صاحبِ زمینِ کنارِ رود', c: '#4f6b2f', g: 'ح', loc: 'hossein', literate: false,
+      bio: 'Hossein, 24, shepherd, son of the late Qasem, owns a small riverside plot with precious water rights; proud, honest, hot-headed, illiterate (Mirza writes and reads for him). In love with Shirin. Javad threatens to cut his water unless he sells before harvest.' },
+  };
+  const IDS = Object.keys(P);
+  const OUT = { city: { name: 'شهر', loc: 'post' }, courier: { name: 'چاپار (تو)', loc: null } };
+  const SEAL = { golnar: '#6f4a24', mirza: '#2f4f6f', shirin: '#6b3f8a', javad: '#b3261e', molouk: '#c0652b', hossein: '#4f6b2f', city: '#2e2a26', courier: '#5a5148', rahim: '#8a7a64' };
+  const LOC = {
+    post: { x: 120, y: 420, name: 'چاپارخانه' }, tea: { x: 262, y: 382, name: 'قهوه‌خانه' },
+    mirza: { x: 420, y: 330, name: 'مکتب‌خانه' }, golnar: { x: 560, y: 405, name: 'خانه‌ی بی‌بی' },
+    shirin: { x: 690, y: 322, name: 'کارگاهِ قالی' }, javad: { x: 272, y: 222, name: 'باغِ کربلایی' },
+    hossein: { x: 598, y: 178, name: 'آغلِ حسین' }, mill: { x: 730, y: 150, name: 'آسیابِ کهنه' },
+  };
+  const DOOR = {
+    golnar: ['بی‌بی نامه را به سینه‌اش چسباند: «باید ببرمش پیش میرزا تا برایم بخواند.»', 'بی‌بی دستت را گرفت: «از شهر خبری نیست جوان؟ از فرهادم؟»'],
+    mirza: ['میرزا عینکش را جابه‌جا کرد و مهر را با دقت نگاه کرد.', 'میرزا بی‌آنکه سرش را از کتاب بلند کند، نامه را گرفت.'],
+    shirin: ['شیرین نامه را زیر قالیِ نیمه‌کاره پنهان کرد و لبخند زد.', 'صدای دارِ قالی قطع شد؛ شیرین نامه را با عجله گرفت.'],
+    javad: ['کربلایی جواد مهر را با شست لمس کرد و چشم‌هایش باریک شد.', 'جواد سکه‌ای جلوی پایت انداخت: «خوش‌خبر باشی.»'],
+    molouk: ['ملوک از پشتِ درِ باغ نامه را قاپید: «هیس! بابام نفهمد.»', 'ملوک با چشم‌های کنجکاو پرسید: «تو که نخواندی‌اش، هان؟»'],
+    hossein: ['حسین دست‌های خاکی‌اش را پاک کرد: «باید بدهم میرزا بخواند.»', 'سگِ گله پارس کرد؛ حسین نامه را گرفت و به دوردست خیره شد.'],
+    city: ['کیسه‌ی نامه‌های شهر بسته شد. کاروان سپیده‌دم راه می‌افتد.'],
+  };
+  const INIT_REL = { 'golnar|shirin': 60, 'golnar|javad': -30, 'golnar|mirza': 35, 'golnar|hossein': -5, 'golnar|molouk': 10, 'hossein|shirin': 75, 'hossein|javad': -55, 'hossein|mirza': 25, 'hossein|molouk': 20, 'javad|mirza': 25, 'javad|molouk': 35, 'javad|shirin': -10, 'mirza|shirin': 30, 'mirza|molouk': 10, 'molouk|shirin': 70 };
+  const INIT_NOTES = 'Day 1. Javad is preparing a deed to take Hossein\'s riverside land "before harvest" through Mirza. Hossein and Shirin plan to meet at the old mill on Friday at sunset (day 5). Golnar keeps writing to Farhad in the city; his letters never reach her because Javad had them intercepted. Mash Rahim, the old courier, fled a week ago out of guilt and hid some intercepted letters under a loose brick by the oven in the post house. Molouk is to be married to a city merchant next month.';
+
+  const DAY1 = [
+    { from: 'hossein', to: 'shirin', text: 'شیرین‌جان، سلام. این نامه را میرزا برایم می‌نویسد، پس شرمم می‌آید هر چه در دلم هست بگویم. فقط بدان که کربلایی جواد باز آمده سراغِ زمینم کنارِ رود؛ می‌گوید اگر تا درو نفروشم، آبم را می‌بندد.\nجمعه غروب کنارِ آسیابِ کهنه منتظرت هستم. اگر بی‌بی نگذاشت، یک گلِ ختمی لبِ پنجره بگذار تا بفهمم.' },
+    { from: 'javad', to: 'mirza', text: 'میرزا عباس، سلام علیکم.\nقباله‌ی زمینِ کنارِ رود را همان‌طور که گفتم آماده کن. فروشنده حسین پسرِ مرحوم قاسم، مبلغ همان که گفتم. پسره سواد ندارد؛ تو بخوان، او انگشت بزند. زحمتت محفوظ است.\nدهانت را مثلِ مش رحیم بسته نگه دار. خدا نکند کسی مثل او هوسِ سفر کند.' },
+    { from: 'golnar', to: 'city', toName: 'فرهاد، در شهر', text: 'فرهادِ من، نورِ چشمم. این چهارمین نامه‌ی امسال است که میرزا برایم می‌نویسد و تو باز جواب نداده‌ای. نکند دلت از ما گرفته؟\nکربلایی جواد می‌گوید پسرت فراموشت کرده، زمینت را بفروش و راحت شو. من گوش نکرده‌ام، ولی پیر شده‌ام فرهاد. فقط یک خط بنویس که زنده‌ای.' },
+    { from: 'molouk', to: 'shirin', text: 'شیرین، خواهرکم! خبرِ داغ دارم: دیشب بابام با میرزا پچ‌پچ می‌کرد که «تا درو، زمینِ پسرِ قاسم مالِ ماست». خدا به دادِ حسینت برسد!\nراستی جمعه با هم برویم آسیابِ کهنه؟ شنیده‌ام آنجا یک کسی منتظرِ یک کسی است…\nنامه را بسوزان. اگر بابام بفهمد کارم ساخته است.' },
+    { from: 'rahim', fromName: 'مش رحیم', to: 'courier', text: 'به چاپارِ تازه، هر که هستی.\nمن رفتم چون دیگر روی نگاه کردن به چشمِ بی‌بی گلنار را نداشتم. سال‌ها نامه‌هایی را که از شهر به نامِ او می‌آمد، به دستورِ صاحبِ مهرِ سرخ، به جای خانه‌ی بی‌بی به تنورِ چاپارخانه دادم.\nنه، همه را نسوزاندم. زیرِ آجرِ لقِ کنارِ تنور را نگاه کن. خدا مرا ببخشد.' },
+  ];
+  const BUNDLE = [
+    { from: 'city', fromName: 'فرهاد', to: 'golnar', old: 'دو سال پیش', text: 'مادرِ عزیزم، سلام. در کارگاهِ بافندگیِ شهر کار پیدا کرده‌ام. زن گرفته‌ام، اسمش مهتاب است؛ دختری مهربان که آرزو دارد دست‌هایت را ببوسد.\nبهار که شد، با هم می‌آییم ده. تو را به خدا جوابم را بده؛ دلم برای بوی نانِ تنورت تنگ شده.' },
+    { from: 'city', fromName: 'فرهاد', to: 'golnar', old: 'پارسال', text: 'مادر، چرا جواب نمی‌دهی؟ دخترم به دنیا آمد و اسمش را گلنار گذاشتم، به یادِ تو.\nکربلایی جواد برایم نوشت که گفته‌ای دیگر پسری نداری. باور نمی‌کنم. اگر راست است، فقط یک خط بنویس تا دیگر مزاحمت نشوم. اگر دروغ است، خدا از سرِ او نگذرد.' },
+  ];
+
+  // ================= State =================
+  let S = null;
+  let uid = 1;
+  const nm = (id) => (P[id] ? P[id].name : OUT[id] ? OUT[id].name : id);
+  const fromName = (L) => L.fromName || nm(L.from);
+  const toName = (L) => L.toName || nm(L.to);
+  const relKey = (a, b) => [a, b].sort().join('|');
+  function mkLetter(o) { return Object.assign({ id: 'L' + uid++, opened: false, resealed: false, edited: null, status: 'bag', day: S ? S.day : 1, held: 0 }, o); }
+  function newGame() {
+    S = { day: 1, wax: 2, rel: Object.assign({}, INIT_REL), sus: Object.fromEntries(IDS.map((i) => [i, 5])), notes: INIT_NOTES, chron: [], log: [], bag: [], archive: [], foundBundle: false, readRahim: false, wroteToday: false, phase: 'day', ending: null, uid: 1 };
+    uid = 1; S.bag = DAY1.map(mkLetter); save();
+  }
+  function save() { try { S.uid = uid; localStorage.setItem(SAVE, JSON.stringify(S)); } catch {} }
+  function load() { try { const s = JSON.parse(localStorage.getItem(SAVE) || 'null'); if (s && s.bag) { S = s; uid = s.uid || 100; return true; } } catch {} return false; }
+  const repValue = () => Math.round(100 - IDS.reduce((a, i) => a + S.sus[i], 0) / IDS.length);
+
+  // ================= Map =================
+  function bld(x, y, w, h, o = {}) {
+    const wins = []; const n = o.wins || 2;
+    for (let i = 0; i < n; i++) { const wx = -w / 2 + 8 + i * ((w - 22) / Math.max(1, n - 1)); wins.push(`<rect class="win" x="${wx}" y="${-h + 10}" width="7" height="10" rx="3.5"/>`); }
+    return `<g transform="translate(${x},${y})">
+      <ellipse cx="0" cy="2" rx="${w / 2 + 8}" ry="6" fill="#00000018"/>
+      <rect x="${-w / 2}" y="${-h}" width="${w}" height="${h}" fill="${o.fill || '#d9b58a'}" stroke="#a88258" stroke-width="1.2"/>
+      <rect x="${-w / 2 - 2}" y="${-h - 4}" width="${w + 4}" height="6" fill="#c59d70" stroke="#a88258" stroke-width="1"/>
+      <rect x="${-w / 2}" y="${-h + 2}" width="${w * 0.35}" height="${h - 2}" fill="#00000010"/>
+      <path d="M-6 0 v-13 a6 6 0 0 1 12 0 v13z" fill="#6b4a2e"/>
+      ${wins.join('')}
+      ${o.extra || ''}
+    </g>`;
+  }
+  function drawMap() {
+    const cypress = (x, y, s = 1) => `<g transform="translate(${x},${y}) scale(${s})"><ellipse cx="0" cy="2" rx="7" ry="3" fill="#00000018"/><path d="M0 -44 C 8 -30 8 -8 0 0 C -8 -8 -8 -30 0 -44z" fill="#3f5f3a"/><path d="M0 -44 C 4 -30 4 -8 0 0z" fill="#2f4a2c"/></g>`;
+    const tree = (x, y, s = 1) => `<g transform="translate(${x},${y}) scale(${s})"><ellipse cx="0" cy="2" rx="9" ry="3" fill="#00000018"/><rect x="-1.5" y="-10" width="3" height="10" fill="#6b4a2e"/><circle cx="0" cy="-16" r="10" fill="#6f8f3f"/><circle cx="-5" cy="-19" r="6" fill="#86a64f"/><circle cx="4" cy="-13" r="3" fill="#c0473a"/></g>`;
+    const sheep = (x, y) => `<g class="sheep" transform="translate(${x},${y})"><ellipse cx="0" cy="-5" rx="7" ry="5" fill="#fbf6ea"/><circle cx="7" cy="-7" r="3" fill="#3a2b1c"/></g>`;
+    let orchard = ''; for (let i = 0; i < 9; i++) orchard += tree(190 + (i % 5) * 34 + (i > 4 ? 16 : 0), 262 + Math.floor(i / 5) * 26, 0.9);
+    const svg = `
+    <defs>
+      <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9fc8e0"/><stop offset="1" stop-color="#f5e2bd"/></linearGradient>
+      <linearGradient id="field" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d9c48f"/><stop offset="1" stop-color="#c7a86c"/></linearGradient>
+      <filter id="glow" x="-200%" y="-200%" width="500%" height="500%"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    </defs>
+    <rect width="820" height="500" fill="url(#sky)"/>
+    <circle cx="690" cy="58" r="26" fill="#fff4cf"/><circle cx="690" cy="58" r="40" fill="#fff4cf" opacity=".25"/>
+    <g class="cloud"><ellipse cx="0" cy="60" rx="46" ry="12" fill="#fff" opacity=".8"/><ellipse cx="22" cy="52" rx="26" ry="11" fill="#fff" opacity=".85"/></g>
+    <g class="cloud" style="animation-delay:-45s"><ellipse cx="0" cy="96" rx="36" ry="9" fill="#fff" opacity=".7"/></g>
+    <path d="M0 150 L70 88 L130 128 L210 60 L300 122 L380 78 L470 130 L560 70 L640 118 L720 84 L820 136 L820 500 L0 500Z" fill="#a9a3bd"/>
+    <path d="M210 60 L232 80 L218 78 L204 90 L196 74Z M560 70 L580 90 L566 88 L552 98 L546 82Z" fill="#f5f2fb"/>
+    <path d="M0 190 C 100 150 200 176 300 160 S 520 140 620 160 S 760 150 820 170 L820 500 L0 500Z" fill="#b8a77f"/>
+    <path d="M0 230 C 120 206 260 222 400 210 S 680 196 820 220 L820 500 L0 500Z" fill="url(#field)"/>
+    <path class="river" d="M820 118 C 760 160, 700 150, 660 210 S 560 270, 520 300 S 470 400, 430 500"/>
+    <path class="river2" d="M820 118 C 760 160, 700 150, 660 210 S 560 270, 520 300 S 470 400, 430 500"/>
+    <path class="road" d="M-10 440 C 60 430, 90 425, 120 420 S 220 395, 262 382 S 360 345, 420 330 S 520 380, 560 405 M420 330 C 470 320, 600 330, 690 322 M262 382 C 250 330, 262 270, 272 222 M420 330 C 470 280, 560 220, 598 178 S 690 160, 730 150"/>
+    <path class="road2" d="M-10 440 C 60 430, 90 425, 120 420 S 220 395, 262 382 S 360 345, 420 330 S 520 380, 560 405 M420 330 C 470 320, 600 330, 690 322 M262 382 C 250 330, 262 270, 272 222 M420 330 C 470 280, 560 220, 598 178 S 690 160, 730 150"/>
+    <rect x="520" y="304" width="44" height="6" fill="#8a6a44" transform="rotate(-18 542 307)"/>
+    ${orchard}
+    ${cypress(80, 380, 1.1)}${cypress(98, 392, .9)}${cypress(350, 300, 1)}${cypress(640, 380, 1.1)}${cypress(760, 300, 1)}${cypress(470, 440, 1.2)}
+    ${tree(620, 430)}${tree(170, 470, 1.1)}${tree(740, 380, .9)}
+    ${sheep(560, 196)}${sheep(578, 206)}${sheep(636, 200)}
+    <g id="locs"></g>
+    <g id="badges"></g>
+    <g id="brickG"></g>
+    <g id="flyer" style="display:none"><rect x="-12" y="-8" width="24" height="16" rx="2" fill="#fbf4e3" stroke="#8a6a44"/><path d="M-12 -8 L0 2 L12 -8" fill="none" stroke="#8a6a44"/><circle cx="0" cy="2" r="3.5" fill="#a3281c"/></g>
+    <rect id="nightRect" width="820" height="500" fill="#0e1433" opacity="0"/>
+    <g id="nightWins"></g>`;
+    $('map').innerHTML = svg;
+    const L = LOC;
+    const smoke = (x, y, d) => `<circle class="smoke" cx="${x}" cy="${y}" r="5" style="animation-delay:${d}s"/><circle class="smoke" cx="${x}" cy="${y}" r="5" style="animation-delay:${d + 2.5}s"/>`;
+    const parts = {
+      post: bld(L.post.x, L.post.y, 70, 40, { wins: 2, fill: '#d2a878', extra: `<rect x="22" y="-60" width="10" height="22" fill="#b28a5c"/>${smoke(27, -62, 0)}<text x="0" y="-48" font-size="15" text-anchor="middle">✉</text>` }),
+      tea: bld(L.tea.x, L.tea.y, 60, 32, { wins: 2, extra: `<path d="M-18 -36 a18 18 0 0 1 36 0z" fill="#3f8f86" stroke="#2f6e69"/><circle cx="0" cy="-54" r="2.5" fill="#b8872b"/>` }),
+      mirza: bld(L.mirza.x, L.mirza.y, 64, 36, { wins: 3, extra: `<rect x="-6" y="-52" width="12" height="12" fill="#b28a5c"/><path d="M-20 -6 h40" stroke="#8a6a44" stroke-width="2"/>` }),
+      golnar: bld(L.golnar.x, L.golnar.y, 58, 32, { wins: 2, extra: `<rect x="16" y="-48" width="9" height="14" fill="#b28a5c"/>${smoke(20, -50, 1.2)}<circle cx="-34" cy="-6" r="7" fill="#c9a06a"/><path d="M-40 -6 a6 3 0 0 0 12 0" fill="#8a6a44"/>` }),
+      shirin: bld(L.shirin.x, L.shirin.y, 66, 34, { wins: 3, fill: '#dcb993', extra: `<rect x="-44" y="-30" width="18" height="26" fill="#7a3b8f"/><rect x="-42" y="-28" width="14" height="22" fill="none" stroke="#e8c26a" stroke-width="1.5"/><path d="M-35 -26 l5 8 -5 8 -5 -8z" fill="#e8c26a"/>` }),
+      javad: bld(L.javad.x, L.javad.y, 100, 48, { wins: 4, fill: '#e2c095', extra: `<rect x="26" y="-86" width="18" height="40" fill="#d2ad80" stroke="#a88258"/><rect x="29" y="-82" width="3" height="14" fill="#6b4a2e"/><rect x="34" y="-82" width="3" height="14" fill="#6b4a2e"/><rect x="39" y="-82" width="3" height="14" fill="#6b4a2e"/><rect x="-50" y="-4" width="100" height="4" fill="#b3261e" opacity=".6"/>` }),
+      hossein: `<g transform="translate(${L.hossein.x},${L.hossein.y})"><ellipse cx="0" cy="2" rx="40" ry="6" fill="#00000018"/><path d="M-34 0 v-22 l34 -14 34 14 v22z" fill="#c4a06c" stroke="#8a6a44"/><path d="M-38 -20 l38 -16 38 16" fill="none" stroke="#7a5a34" stroke-width="3"/><path d="M-6 0 v-13 a6 6 0 0 1 12 0 v13z" fill="#6b4a2e"/><rect class="win" x="16" y="-16" width="7" height="8" rx="3.5"/><path d="M-60 2 h120" stroke="#8a6a44" stroke-width="2" stroke-dasharray="2 6"/></g>`,
+      mill: `<g transform="translate(${L.mill.x},${L.mill.y})"><rect x="-18" y="-34" width="36" height="34" fill="#b9a07a" stroke="#8a7050"/><rect class="win" x="-4" y="-26" width="7" height="9" rx="3.5"/><g class="wheel" transform="translate(-26,-14)"><circle r="16" fill="none" stroke="#6b4a2e" stroke-width="3"/><path d="M-16 0 H16 M0 -16 V16 M-11 -11 L11 11 M11 -11 L-11 11" stroke="#6b4a2e" stroke-width="2"/></g></g>`,
+    };
+    let locs = '';
+    for (const k of Object.keys(LOC)) {
+      locs += `<g class="loc" data-loc="${k}" tabindex="0" role="button" aria-label="${LOC[k].name}">${parts[k]}<text class="lbl" x="${LOC[k].x}" y="${LOC[k].y + 20}">${LOC[k].name}</text></g>`;
+    }
+    $('locs').innerHTML = locs;
+    $('locs').addEventListener('click', (e) => { const g = e.target.closest('.loc'); if (g) clickLoc(g.dataset.loc); });
+    $('locs').addEventListener('keydown', (e) => { if (e.key === 'Enter') { const g = e.target.closest('.loc'); if (g) clickLoc(g.dataset.loc); } });
+  }
+  function targetLoc(L) { if (L.to === 'city') return 'post'; if (L.to === 'courier') return null; return P[L.to] ? P[L.to].loc : null; }
+  function renderMap() {
+    const counts = {};
+    for (const L of S.bag) { const t = targetLoc(L); if (t) counts[t] = (counts[t] || 0) + 1; }
+    $('badges').innerHTML = Object.entries(counts).map(([k, n]) => { const p = LOC[k]; const bh = k === 'javad' ? 104 : k === 'mill' ? 58 : 70; return `<g class="badge" transform="translate(${p.x},${p.y - bh})"><path d="M0 0 v18" stroke="#6b4a2e" stroke-width="2"/><rect x="0" y="-2" width="24" height="16" rx="2"/><text x="12" y="10">${fa(n)}</text></g>`; }).join('');
+    const showBrick = S.readRahim && !S.foundBundle;
+    const bx = LOC.post.x - 56, by = LOC.post.y - 6;
+    $('brickG').innerHTML = showBrick ? `<g class="brick" id="brick" tabindex="0" role="button" aria-label="آجرِ لقِ کنارِ تنور"><circle cx="${bx}" cy="${by}" r="26" fill="#ffd98a" opacity=".35"/><rect x="${bx - 13}" y="${by - 7}" width="26" height="13" rx="2" fill="#b0643a" stroke="#6b3a1a" stroke-width="1.5"/><path d="M${bx - 13} ${by} h26" stroke="#6b3a1a"/><text x="${bx}" y="${by - 16}" font-size="16" font-weight="800" text-anchor="middle" fill="#6b3a1a">؟</text></g>` : '';
+    if (showBrick) { const b = $('brick'); b.onclick = findBundle; b.onkeydown = (e) => { if (e.key === 'Enter') findBundle(); }; }
+  }
+  function clickLoc(k) {
+    const L = S.bag.find((l) => targetLoc(l) === k);
+    if (L) { openDesk(L.id); return; }
+    const who = IDS.filter((i) => P[i].loc === k).map(nm);
+    const txt = k === 'post' ? 'چاپارخانه: نامه‌های شهر را اینجا به کاروان می‌سپاری.' : k === 'tea' ? 'قهوه‌خانه: هر صبح شایعه‌های تازه را از اینجا می‌شنوی.' : k === 'mill' ? 'آسیابِ کهنه: سال‌هاست کسی گندم نیاورده. جای قرارهای پنهانی.' : who.length ? `${LOC[k].name}: ${who.join(' و ')}. امروز نامه‌ای برایشان نداری.` : LOC[k].name;
+    toast(txt);
+  }
+  function findBundle() {
+    S.foundBundle = true;
+    const found = BUNDLE.map((b) => mkLetter(Object.assign({}, b, { found: true })));
+    S.bag.push(...found); S.log.push({ day: S.day, kind: 'bundle', text: 'The courier found Mash Rahim\'s hidden bundle under the loose brick: old letters from Farhad to Golnar.' });
+    save(); renderAll();
+    toast('زیرِ آجرِ لق، بسته‌ای نامه‌ی خاک‌گرفته پیدا کردی: نامه‌هایی از فرهاد به مادرش. مهرشان سال‌هاست شکسته.');
+  }
+
+  function fly(locKey, cb) {
+    const g = $('flyer'); const a = LOC.post, b = LOC[locKey];
+    if (!b || matchMedia('(prefers-reduced-motion: reduce)').matches) { cb(); return; }
+    g.style.display = ''; const t0 = performance.now(), dur = 1100;
+    const step = (now) => {
+      const t = Math.min(1, (now - t0) / dur), e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+      const x = a.x + (b.x - a.x) * e, y = a.y + (b.y - a.y) * e - Math.sin(Math.PI * e) * 90 - 40;
+      g.setAttribute('transform', `translate(${x},${y}) rotate(${(1 - t) * -20})`);
+      if (t < 1) requestAnimationFrame(step); else { g.style.display = 'none'; cb(); }
+    };
+    requestAnimationFrame(step);
+  }
+
+  // ================= Satchel =================
+  function sealHTML(L, big) {
+    const col = SEAL[L.from] || SEAL.courier;
+    const glyph = L.from === 'courier' ? (L.signedAs && P[L.signedAs] ? P[L.signedAs].g : '؟') : L.from === 'city' ? 'ش' : L.from === 'rahim' ? 'ر' : P[L.from] ? P[L.from].g : '•';
+    const sealCol = L.from === 'courier' && L.signedAs ? SEAL[L.signedAs] : col;
+    let pts = ''; for (let i = 0; i < 18; i++) { const a = (i / 18) * Math.PI * 2, r = i % 2 ? 26 : 29; pts += `${30 + Math.cos(a) * r},${30 + Math.sin(a) * r} `; }
+    const svg = `<svg viewBox="0 0 60 60" aria-hidden="true"><polygon points="${pts}" fill="${sealCol}"/><circle cx="30" cy="30" r="19" fill="none" stroke="#ffffff44" stroke-width="1.5"/><text x="30" y="37" font-size="22" text-anchor="middle" fill="#ffffffcc" font-family="Aref Ruqaa, serif">${glyph}</text></svg>`;
+    const broken = L.opened && !L.resealed;
+    return `<div class="seal ${big ? 'big' : ''} ${broken ? 'broken' : ''}"><div class="half L">${svg}</div><div class="half R">${svg}</div></div>`;
+  }
+  function tagsHTML(L) {
+    const t = [];
+    if (L.to === 'courier') t.push('<span class="tag gold">برای تو</span>');
+    if (L.found) t.push(`<span class="tag gold">قدیمی · ${esc(L.old)}</span>`);
+    if (L.opened && !L.resealed && !L.found) t.push('<span class="tag red">مهر شکسته</span>');
+    if (L.resealed) t.push('<span class="tag teal">دوباره مهر شده</span>');
+    if (L.edited != null) t.push('<span class="tag red">بازنویسی‌شده</span>');
+    if (L.held) t.push(`<span class="tag gold">${fa(L.held)} روز مانده</span>`);
+    if (L.from === 'courier') t.push('<span class="tag gold">نوشته‌ی تو</span>');
+    if (P[L.from] && P[L.from].redSeal) t.push('<span class="tag red">مهر سرخ</span>');
+    return t.join('');
+  }
+  function renderBag() {
+    const bag = S.bag;
+    $('bagSub').textContent = bag.length ? `${fa(bag.length)} نامه در خورجین` : 'خورجین خالی است';
+    $('bag').innerHTML = bag.length ? bag.map((L) => `<button class="env ${L.to === 'courier' ? 'forme' : ''}" type="button" data-id="${L.id}">${sealHTML(L)}<div><div class="who">${esc(fromName(L))}</div><div class="to">برای ${esc(toName(L))}</div><div class="tags">${tagsHTML(L)}</div></div></button>`).join('')
+      : '<div class="empty-bag">همه‌ی نامه‌ها رسیده‌اند. وقتی آماده بودی، «شب می‌شود» را بزن.</div>';
+  }
+  $('bag').addEventListener('click', (e) => { const b = e.target.closest('.env'); if (b) openDesk(b.dataset.id); });
+
+  // ================= Desk =================
+  let deskId = null, editing = false;
+  function letterText(L) { return L.edited != null ? L.edited : L.text; }
+  function sigHTML(L) {
+    const signer = L.from === 'courier' ? (L.signedAs ? nm(L.signedAs) : '') : fromName(L);
+    const scribe = (P[L.from] && !P[L.from].literate) || (L.from === 'courier' && L.signedAs && !P[L.signedAs].literate) ? '<div class="scribe">به خطِ میرزا عباس</div>' : '';
+    return signer ? `<div class="sig">— ${esc(signer)}</div>${scribe}` : '<div class="scribe">بی‌امضا</div>';
+  }
+  function openDesk(id) { deskId = id; editing = false; renderDesk(); $('deskOv').hidden = false; }
+  function closeDesk() { $('deskOv').hidden = true; deskId = null; }
+  function renderDesk() {
+    const L = S.bag.find((l) => l.id === deskId); if (!L) { closeDesk(); return; }
+    const forMe = L.to === 'courier', mine = L.from === 'courier';
+    const readable = L.opened || forMe || mine || L.found;
+    let html = `<button class="close" type="button" style="color:#f6e7c8" data-close="deskOv" aria-label="بستن">×</button>
+      <h3 style="color:#f6e7c8">از ${esc(fromName(L))} برای ${esc(toName(L))}</h3>
+      <p class="note">${L.found ? 'از بسته‌ی پنهانِ مش رحیم. مهرش سال‌ها پیش شکسته شده.' : forMe ? 'این نامه به نام خودت است.' : mine ? 'نامه‌ای که خودت نوشته‌ای.' : L.opened ? (L.resealed ? 'مهر را با موم تازه پوشانده‌ای. کسی نباید بفهمد.' : 'مهر شکسته است. گیرنده احتمالاً می‌فهمد.') : 'مهر سالم است. اگر بخوانی‌اش، مهر می‌شکند.'}</p>
+      <div class="burn-wrap" id="burnWrap">`;
+    if (editing) {
+      html += `<label class="f" for="editText" style="color:#f6e7c8">متن تازه‌ی نامه (به لحنِ ${esc(fromName(L))})<textarea id="editText" maxlength="1200">${esc(letterText(L))}</textarea></label>
+        <p class="note" style="margin-top:6px">اگر لحن یا حرف‌ها به ${esc(fromName(L))} نخورد، گیرنده بو می‌برد. ${P[L.from] && !P[L.from].literate ? 'این نامه را میرزا عباس نوشته؛ خطش را همه می‌شناسند.' : ''}</p>`;
+    } else if (readable) {
+      html += `<div class="paper ${L.edited != null ? 'forged' : ''} ${L.found ? 'old' : ''}"><div class="body">${esc(letterText(L))}</div>${sigHTML(L)}</div>`;
+    } else {
+      html += `<div class="envelope"><div class="from">از: ${esc(fromName(L))}</div>${sealHTML(L, true)}<div class="addr">برسد به دستِ ${esc(toName(L))}</div></div>`;
+    }
+    html += '</div><div class="desk-acts">';
+    if (editing) {
+      html += `<button class="btn primary" type="button" data-act="saveEdit">همین را بفرست</button><button class="btn" type="button" data-act="cancelEdit">پشیمان شدم</button>`;
+    } else if (forMe) {
+      html += `<button class="btn primary" type="button" data-act="readMine">خواندم</button>`;
+    } else {
+      const dest = L.to === 'city' ? 'بسپار به کاروانِ شهر' : `ببر برای ${esc(toName(L))}`;
+      html += `<button class="btn primary" type="button" data-act="deliver">${dest}</button>`;
+      if (!readable) html += `<button class="btn" type="button" data-act="open">مهر را بشکن و بخوان</button>`;
+      if (L.opened && !L.resealed && !L.found) html += `<button class="btn" type="button" data-act="reseal" ${S.wax < 1 ? 'disabled' : ''}>دوباره مهر کن (${fa(S.wax)} موم)</button>`;
+      if (readable && !mine && !L.found) html += `<button class="btn" type="button" data-act="edit">بازنویسی</button>`;
+      html += `<button class="btn" type="button" data-act="keep">نگه دار</button>`;
+      html += `<button class="btn danger" type="button" data-act="burn">بسوزان</button>`;
+    }
+    html += '</div>';
+    $('desk').innerHTML = html;
+  }
+  $('desk').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-act]'); if (!b) return;
+    const L = S.bag.find((l) => l.id === deskId); if (!L) return;
+    const act = b.dataset.act;
+    if (act === 'open') { L.opened = true; archive(L); save(); renderDesk(); renderBag(); }
+    else if (act === 'reseal') { if (S.wax > 0) { S.wax--; L.resealed = true; save(); renderAll(); renderDesk(); toast('موم داغ را روی مهرِ شکسته ریختی. تقریباً مثل روز اول شد.'); } }
+    else if (act === 'edit') { editing = true; renderDesk(); setTimeout(() => $('editText') && $('editText').focus(), 50); }
+    else if (act === 'cancelEdit') { editing = false; renderDesk(); }
+    else if (act === 'saveEdit') { const t = $('editText').value.trim(); if (t && t !== L.text) { L.edited = t; archive(L); } editing = false; save(); renderDesk(); renderBag(); }
+    else if (act === 'keep') { closeDesk(); toast('نامه ته خورجین ماند. فرستنده شاید سراغش را بگیرد.'); }
+    else if (act === 'readMine') { if (L.from === 'rahim') S.readRahim = true; archive(L); L.status = 'read'; S.log.push({ day: S.day, kind: 'read', L: snap(L) }); S.bag = S.bag.filter((l) => l !== L); closeDesk(); save(); renderAll(); if (L.from === 'rahim') toast('یک آجرِ لق کنار تنورِ چاپارخانه… روی نقشه پیدایش کن.'); }
+    else if (act === 'burn') burnLetter(L);
+    else if (act === 'deliver') deliver(L);
+  });
+  function snap(L) { return { id: L.id, from: L.from, fromName: L.fromName || null, to: L.to, toName: L.toName || null, signedAs: L.signedAs || null, text: L.text, edited: L.edited, opened: L.opened, resealed: L.resealed, found: !!L.found, old: L.old || null, held: L.held }; }
+  function archive(L) { const i = S.archive.findIndex((a) => a.id === L.id); const a = { id: L.id, day: S.day, from: fromName(L), to: toName(L), text: letterText(L), forged: L.edited != null }; if (i >= 0) S.archive[i] = a; else S.archive.push(a); }
+  function burnLetter(L) {
+    const wrap = $('burnWrap'); wrap.classList.add('burning');
+    wrap.insertAdjacentHTML('beforeend', '<div class="flame"></div>');
+    for (let i = 0; i < 16; i++) { const s = document.createElement('span'); s.className = 'ember'; s.style.left = 15 + Math.random() * 70 + '%'; s.style.bottom = Math.random() * 60 + '%'; s.style.setProperty('--dx', (Math.random() * 80 - 40) + 'px'); s.style.animationDelay = Math.random() * 1.2 + 's'; wrap.appendChild(s); }
+    $('desk').querySelectorAll('[data-act]').forEach((b) => (b.disabled = true));
+    setTimeout(() => { L.status = 'burned'; S.log.push({ day: S.day, kind: 'burned', L: snap(L) }); S.bag = S.bag.filter((l) => l !== L); closeDesk(); save(); renderAll(); toast('نامه خاکستر شد. هیچ‌وقت به دستِ ' + toName(L) + ' نمی‌رسد.'); }, 1900);
+  }
+  function deliver(L) {
+    closeDesk();
+    const loc = targetLoc(L);
+    fly(loc, () => {
+      L.status = L.to === 'city' ? 'sent' : 'delivered';
+      S.log.push({ day: S.day, kind: L.status, L: snap(L) });
+      S.bag = S.bag.filter((l) => l !== L);
+      save(); renderAll();
+      let line = pick(DOOR[L.to] || DOOR.city);
+      if (L.opened && !L.resealed && !L.found) line += ' نگاهش روی مهرِ شکسته ماند.';
+      toast(line);
+    });
+  }
+
+  // ================= Write your own =================
+  $('anonBtn').addEventListener('click', () => {
+    if (S.wroteToday) { toast('امروز نامه‌ات را نوشته‌ای. فردا دوباره.'); return; }
+    $('anonTo').innerHTML = IDS.map((i) => `<option value="${i}">${nm(i)}</option>`).join('') + '<option value="city">شهر (فرهاد)</option>';
+    $('anonAs').innerHTML = '<option value="">بی‌امضا</option>' + IDS.map((i) => `<option value="${i}">${nm(i)}</option>`).join('');
+    $('anonText').value = ''; $('anonOv').hidden = false; setTimeout(() => $('anonText').focus(), 50);
+  });
+  $('anonSend').addEventListener('click', () => {
+    const to = $('anonTo').value, as = $('anonAs').value, t = $('anonText').value.trim();
+    if (!t) { $('anonText').focus(); return; }
+    if (as && as === to) { toast('نمی‌شود نامه‌ای به نامِ خودِ گیرنده برایش فرستاد.'); return; }
+    const L = mkLetter({ from: 'courier', signedAs: as || null, fromName: as ? nm(as) : 'بی‌نام', to, toName: to === 'city' ? 'فرهاد، در شهر' : undefined, text: t });
+    S.bag.unshift(L); S.wroteToday = true; save(); $('anonOv').hidden = true; renderAll(); toast('نامه‌ات مهر شد و در خورجین است. حالا باید برسانی‌اش.');
+  });
+
+  // ================= Night (Claude) =================
+  let sample = null, nightCtl = null;
+  (async () => { try { if (window.claude && window.claude.use) sample = await window.claude.use('sample'); } catch {} })();
+  const NIGHT_LINES = ['چراغِ خانه‌ها یکی‌یکی روشن می‌شود…', 'میرزا عباس کنارِ فانوس، نامه‌ای را برای بی‌بی بلند می‌خواند…', 'صدای دارِ قالی از کارگاهِ شیرین تا دیروقت می‌آید…', 'کربلایی جواد در باغ قدم می‌زند و تسبیح می‌چرخاند…', 'سگِ گله‌ی حسین به ماه پارس می‌کند…', 'ملوک پشتِ پنجره، دزدکی چیزی می‌نویسد…', 'قلم‌ها روی کاغذ می‌دوند؛ فردا خورجینت سنگین است…'];
+  let lineTimer = null;
+  function describeDay() {
+    const lines = [];
+    const today = S.log.filter((x) => x.day === S.day);
+    for (const x of today) {
+      if (x.kind === 'bundle') { lines.push('- EVENT: ' + x.text); continue; }
+      const L = x.L; if (!L) continue;
+      const sender = L.from === 'courier' ? `the COURIER (player)${L.signedAs ? `, forged and signed as ${L.signedAs}` : ', unsigned'}` : L.from === 'city' ? `${L.fromName || 'someone'} in the city` : L.from === 'rahim' ? 'Mash Rahim (old courier)' : L.from;
+      const dest = L.to === 'city' ? `the city (${L.toName || 'Farhad'})` : L.to;
+      let s = `- [${x.kind.toUpperCase()}] from ${sender} to ${dest}`;
+      if (L.found) s += ` (OLD letter from ${L.old}, intercepted years ago, found in Mash Rahim's hidden bundle; seal long broken)`;
+      else if (L.from !== 'courier' && L.to !== 'courier') s += ` | seal: ${L.opened ? (L.resealed ? 'opened by courier then resealed with fresh wax' : 'BROKEN by courier') : 'intact'}`;
+      if (L.held) s += ` | delayed ${L.held} day(s) in the satchel`;
+      s += `\n  ORIGINAL TEXT: «${L.text}»`;
+      if (L.edited != null) s += `\n  TEXT ACTUALLY ${x.kind === 'burned' ? 'WRITTEN' : 'RECEIVED'} (rewritten by the courier): «${L.edited}»`;
+      lines.push(s);
+    }
+    for (const L of S.bag) {
+      if (L.to === 'courier') continue;
+      lines.push(`- [STILL HELD by courier, not delivered] from ${L.from === 'courier' ? 'courier' : L.from === 'city' ? (L.fromName || 'city') : L.from} to ${L.to}${L.opened ? ' (seal broken)' : ''}: «${letterText(L).slice(0, 220)}»`);
+    }
+    return lines.join('\n') || '- The courier did nothing today.';
+  }
+  function nightPrompt() {
+    const chars = IDS.map((i) => `${i} (${P[i].name}): ${P[i].bio}`).join('\n');
+    const rel = Object.entries(S.rel).map(([k, v]) => `${k}: ${v}`).join(', ');
+    const sus = IDS.map((i) => `${i}: ${S.sus[i]}`).join(', ');
+    const chron = S.chron.map((c) => `Day ${c.day}: ${c.headline}`).join('\n') || '(none yet)';
+    const last = S.day >= 7;
+    return `You are the hidden story engine of a Persian narrative game called «چاپار» (The Courier). The player is the new courier of the mountain village دهِ سنگ‌چین, around the early 1300s (Iranian solar calendar). There are no telephones; letters are everything. Every letter passes through the player's hands, and the player may deliver it, break the wax seal and read it, reseal it with fresh wax, rewrite it (forgery), hold it, or burn it, and may also write one letter of their own per day (unsigned, or forged in someone else's name). Characters only know what actually reached them.
+
+WORLD
+- The previous courier, Mash Rahim, vanished a week ago.
+- Golnar and Hossein cannot read or write: Mirza Abbas reads their letters aloud to them and writes theirs, so he learns their contents and knows their usual phrasing; he may notice forgeries of letters he supposedly penned.
+- Letters sent to "city" reach Farhad (Golnar's son) or others in the city; replies from the city can arrive the next day or later.
+- Molouk and Javad share the garden house.
+
+CHARACTERS (id: description)
+${chars}
+
+STATE — end of day ${S.day} of 7
+Relations (-100 hatred … +100 love): ${rel}
+Suspicion of the courier (0 … 100): ${sus}
+Hidden story notes so far: ${S.notes}
+Chronicle:
+${chron}
+
+WHAT THE COURIER DID TODAY
+${describeDay()}
+
+YOUR JOB
+Simulate this evening and night in the village, then write tomorrow morning's mail.
+1. Each recipient reacts ONLY to the text they actually received. Burned or held letters never arrived; their senders may worry, ask the courier, or suspect interception.
+2. A recipient of a letter with a BROKEN seal almost certainly notices and suspects the courier (+10 to +25). Resealed letters are usually not noticed unless the recipient is very careful (Javad, Mirza).
+3. Forgeries: judge honestly whether the rewritten text fits the supposed sender's voice, knowledge and situation. Clumsy forgeries raise suspicion and may be exposed; clever ones genuinely change people's choices. Letters the courier wrote unsigned are treated as anonymous and people guess who wrote them.
+4. Keep the story moving and escalating toward a climax on day 7 (the land deed, the Friday meeting at the old mill on day 5, Molouk's marriage, the truth about Farhad and Mash Rahim). People act on what they learn: visits, confrontations, plans, secrets spilled. Nobody dies. Be specific and surprising, never generic.
+5. ${last ? 'This is the LAST night: write NO letters (empty array); instead make reactions and gossip describe the climax of the week.' : 'Tomorrow\'s mail: 3 to 5 letters, each 40–110 words, in natural, warm, slightly old-fashioned Persian in the sender\'s own voice and signed implicitly by content (do not add a signature line). Letters may go to other villagers, to "city" (from Golnar to Farhad, from Javad to the merchant…), or to "courier" (a bribe, a plea, a threat, a question about a missing letter). A letter from the city uses "from":"city" plus "fromName". Every letter must follow from what actually happened.'}
+6. Everything the player reads (headline, reactions, gossip, why, letters) is in Persian. Keep reactions to 1–2 sentences each, gossip to one sentence each.
+7. suspicion deltas are integers between -15 and 30; relation deltas between -40 and 40; include only people/pairs that changed.
+
+Reply with ONLY this JSON:
+{"headline":"one vivid sentence","reactions":[{"who":"id","text":"..."}],"gossip":["...","..."],"suspicion":[{"who":"id","delta":10,"why":"..."}],"relations":[{"a":"id","b":"id","delta":-10}],"notes":"updated hidden story notes in English, max 900 characters, including what each character now knows and plans","letters":[{"from":"id or city","fromName":"only for city","to":"id or city or courier","toName":"only for city","text":"..."}]}
+Valid ids: ${IDS.join(', ')}.`;
+  }
+  function endingPrompt() {
+    const chars = IDS.map((i) => `${i} (${P[i].name}): ${P[i].bio}`).join('\n');
+    const chron = S.chron.map((c) => `Day ${c.day}: ${c.headline}\n  ${c.reactions.map((r) => r.who + ': ' + r.text).join(' | ')}`).join('\n');
+    const acts = S.log.filter((x) => x.L).map((x) => `day ${x.day} ${x.kind}: ${x.L.from}→${x.L.to}${x.L.edited != null ? ' (FORGED)' : ''}${x.L.opened && !x.L.resealed ? ' (seal broken)' : ''}`).join('; ');
+    return `You are the story engine of the Persian narrative game «چاپار». The player was the courier of the village دهِ سنگ‌چین for seven days and could read, forge, hold, burn or deliver every letter.
+CHARACTERS
+${chars}
+FINAL STATE
+Relations: ${Object.entries(S.rel).map(([k, v]) => `${k}: ${v}`).join(', ')}
+Suspicion of the courier: ${IDS.map((i) => `${i}: ${S.sus[i]}`).join(', ')}
+${S.dismissed ? 'The village elders dismissed the courier early because nobody trusted them anymore.' : ''}
+Hidden notes: ${S.notes}
+Chronicle:
+${chron}
+The courier's deeds: ${acts}
+
+Write the epilogue in Persian. Judge the courier by what their choices actually caused, with nuance (a liar can still have done good). Reply with ONLY this JSON:
+{"title":"a 2–4 word epithet for the courier, e.g. «چاپارِ امین» or «دلاله‌ی کوچه‌ها»","stars":1-5,"verdict":"one paragraph (60–110 words) about who the courier turned out to be","fates":[{"who":"id","text":"one or two sentences: where this person ends up a year later"}],"secret":"one sentence revealing something the player never found out"}`;
+  }
+  function errCopy(code) {
+    return code === 'not_granted' ? 'اجازه‌ی استفاده از Claude داده نشد. بدون آن، اهالی نمی‌توانند جواب بنویسند. دوباره بزن و این بار اجازه بده.'
+      : code === 'rate_limited' ? 'Claude الان سرش شلوغ است. چند لحظه صبر کن و دوباره بزن.'
+      : code === 'invalid_json' ? 'جوابِ شب درهم‌برهم رسید. یک بار دیگر بزن.'
+      : 'شب درست نگذشت. دوباره امتحان کن.';
+  }
+  function startNightUI(title) {
+    $('nightTitle').textContent = title; $('nightErr').hidden = true; $('nightRetry').hidden = true; $('nightBack').hidden = true; $('nightOv').hidden = false;
+    let i = 0; $('nightLine').textContent = NIGHT_LINES[0];
+    clearInterval(lineTimer); lineTimer = setInterval(() => { i = (i + 1) % NIGHT_LINES.length; $('nightLine').style.opacity = 0; setTimeout(() => { $('nightLine').textContent = NIGHT_LINES[i]; $('nightLine').style.opacity = 1; }, 400); }, 4200);
+  }
+  function nightFail(msg) { clearInterval(lineTimer); $('nightErr').textContent = msg; $('nightErr').hidden = false; $('nightRetry').hidden = false; $('nightBack').hidden = false; }
+  $('endBtn').addEventListener('click', () => {
+    const pending = S.bag.filter((l) => l.to !== 'courier').length;
+    clearTimeout(confirmState.t);
+    if (pending && !confirmState.armed) { confirmState.armed = true; $('endBtn').textContent = `${fa(pending)} نامه مانده؛ باز هم شب؟`; confirmState.t = setTimeout(() => { confirmState.armed = false; $('endBtn').textContent = 'شب می‌شود'; }, 4000); return; }
+    confirmState.armed = false; $('endBtn').textContent = 'شب می‌شود';
+    runNight();
+  });
+  const confirmState = { armed: false, t: 0 };
+  $('nightRetry').addEventListener('click', () => (S.phase === 'ending' ? runEnding() : runNight()));
+  $('nightBack').addEventListener('click', () => { $('nightOv').hidden = true; document.body.classList.remove('night'); $('app').classList.remove('night'); nightCtl && nightCtl.abort(); });
+  async function runNight() {
+    $('app').classList.add('night');
+    startNightUI('شبِ ' + DAYS[S.day - 1]);
+    if (!sample) { nightFail('اینجا به Claude دسترسی نیست. بازی را از داخلِ claude.ai باز کن تا اهالی بتوانند جواب بنویسند.'); return; }
+    nightCtl = new AbortController();
+    let r;
+    try { r = await sample.json(nightPrompt(), { signal: nightCtl.signal, cache: false }); }
+    catch (e) { if (e && e.code === 'cancelled') return; nightFail(errCopy(e && e.code)); return; }
+    clearInterval(lineTimer);
+    applyNight(r || {});
+  }
+  const validId = (x) => IDS.includes(x);
+  function applyNight(r) {
+    // held letters age
+    for (const L of S.bag) if (L.to !== 'courier') L.held = (L.held || 0) + 1;
+    const susCh = [], relCh = [];
+    for (const s of Array.isArray(r.suspicion) ? r.suspicion : []) { if (!validId(s.who)) continue; const d = clamp(Math.round(+s.delta || 0), -15, 30); S.sus[s.who] = clamp(S.sus[s.who] + d, 0, 100); if (d) susCh.push({ who: s.who, d, why: String(s.why || '') }); }
+    for (const x of Array.isArray(r.relations) ? r.relations : []) { if (!validId(x.a) || !validId(x.b) || x.a === x.b) continue; const k = relKey(x.a, x.b), d = clamp(Math.round(+x.delta || 0), -40, 40); S.rel[k] = clamp((S.rel[k] || 0) + d, -100, 100); if (d) relCh.push({ a: x.a, b: x.b, d }); }
+    if (r.notes) S.notes = String(r.notes).slice(0, 1400);
+    const reactions = (Array.isArray(r.reactions) ? r.reactions : []).filter((x) => validId(x.who)).map((x) => ({ who: x.who, text: String(x.text || '') })).slice(0, 8);
+    const gossip = (Array.isArray(r.gossip) ? r.gossip : []).map(String).slice(0, 5);
+    const entry = { day: S.day, headline: String(r.headline || 'شبی آرام در سنگ‌چین.'), reactions, gossip, susCh, relCh };
+    S.chron.push(entry);
+    let newLetters = [];
+    if (S.day < 7) {
+      for (const l of (Array.isArray(r.letters) ? r.letters : []).slice(0, 5)) {
+        const from = l.from === 'city' || validId(l.from) ? l.from : null;
+        const to = l.to === 'city' || l.to === 'courier' || validId(l.to) ? l.to : null;
+        if (!from || !to || from === to || !l.text) continue;
+        newLetters.push({ from, to, fromName: from === 'city' ? String(l.fromName || 'نامه‌ای از شهر') : undefined, toName: to === 'city' ? String(l.toName || 'شهر') : undefined, text: String(l.text).slice(0, 1400) });
+      }
+    }
+    S.day += 1; S.wroteToday = false; S.wax = Math.min(4, S.wax + 1);
+    uid = Math.max(uid, S.uid || 1);
+    const made = newLetters.map((o) => mkLetter(o));
+    S.bag.push(...made);
+    const dismissed = repValue() <= 25;
+    if (dismissed) S.dismissed = true;
+    save();
+    $('nightOv').hidden = true; $('app').classList.remove('night');
+    showNews(entry, made.length, S.day > 7 || dismissed);
+    renderAll();
+  }
+  function face(id) { return `<span class="face" style="--c:${P[id].c}">${P[id].g}</span>`; }
+  function showNews(e, n, final) {
+    const d = e.day;
+    $('news').innerHTML = `
+      <div class="mast"><small>روزنامه‌ی دیواریِ قهوه‌خانه · صبحِ روزِ ${DAYS[Math.min(d, 6)] || ''}</small><b>خبرِ سنگ‌چین</b></div>
+      <div class="head">${esc(e.headline)}</div>
+      <div class="cols">
+        <div>
+          <h4>دیشب در ده</h4>
+          ${e.reactions.map((r) => `<div class="react">${face(r.who)}<div><b>${esc(nm(r.who))}</b> · ${esc(r.text)}</div></div>`).join('') || '<p class="note">خبری نشد.</p>'}
+        </div>
+        <div>
+          <h4>شایعه‌های قهوه‌خانه</h4>
+          <ul class="gossip">${e.gossip.map((g) => `<li>${esc(g)}</li>`).join('')}</ul>
+          <h4 style="margin-top:12px">نگاه‌ها به تو</h4>
+          ${e.susCh.map((s) => `<div class="delta"><span>${esc(nm(s.who))} <span class="note">${esc(s.why)}</span></span><span class="${s.d > 0 ? 'down' : 'up'}">${s.d > 0 ? 'بدگمان‌تر' : 'مطمئن‌تر'} ${fa(Math.abs(s.d))}</span></div>`).join('') || '<p class="note">کسی به تو شک نکرد.</p>'}
+          <h4 style="margin-top:12px">دل‌ها</h4>
+          ${e.relCh.map((x) => `<div class="delta"><span>${esc(nm(x.a))} و ${esc(nm(x.b))}</span><span class="${x.d > 0 ? 'up' : 'down'}">${x.d > 0 ? 'نزدیک‌تر' : 'دورتر'}</span></div>`).join('') || '<p class="note">دل‌ها همان‌جا ماند.</p>'}
+        </div>
+      </div>
+      <div class="row" style="margin-top:14px;justify-content:space-between">
+        <span class="note">${final ? '' : `${fa(n)} نامه‌ی تازه در خورجین است. یک چوبِ موم هم گرفتی.`}</span>
+        <button class="btn primary" id="newsGo" type="button">${final ? 'پایانِ هفته' : 'برویم سراغِ خورجین'}</button>
+      </div>`;
+    $('newsOv').hidden = false;
+    $('newsGo').onclick = () => { $('newsOv').hidden = true; if (final) runEnding(); };
+  }
+  async function runEnding() {
+    S.phase = 'ending'; save();
+    if (S.ending) { showEnding(S.ending); return; }
+    $('app').classList.add('night');
+    startNightUI(S.dismissed ? 'ریش‌سفیدها تصمیم گرفتند' : 'یک سال بعد…');
+    if (!sample) { nightFail('اینجا به Claude دسترسی نیست.'); return; }
+    nightCtl = new AbortController();
+    let r;
+    try { r = await sample.json(endingPrompt(), { signal: nightCtl.signal, cache: false }); }
+    catch (e) { if (e && e.code === 'cancelled') return; nightFail(errCopy(e && e.code)); return; }
+    clearInterval(lineTimer); $('nightOv').hidden = true; $('app').classList.remove('night');
+    S.ending = { title: String(r.title || 'چاپار'), stars: clamp(Math.round(+r.stars || 3), 1, 5), verdict: String(r.verdict || ''), fates: (Array.isArray(r.fates) ? r.fates : []).filter((f) => validId(f.who)).map((f) => ({ who: f.who, text: String(f.text || '') })), secret: String(r.secret || '') };
+    save(); showEnding(S.ending);
+  }
+  function showEnding(E) {
+    $('ending').innerHTML = `
+      <p class="note">${S.dismissed ? 'ریش‌سفیدها کلید چاپارخانه را از تو گرفتند.' : 'هفت روزِ تو در سنگ‌چین تمام شد.'}</p>
+      <h2 style="font-size:46px">${esc(E.title)}</h2>
+      <div class="stars" aria-label="${fa(E.stars)} از ۵">${'★'.repeat(E.stars)}${'☆'.repeat(5 - E.stars)}</div>
+      <p style="font-family:var(--f-letter);line-height:2.6;font-size:16px">${esc(E.verdict)}</p>
+      <h3 style="margin:14px 0 8px">یک سال بعد</h3>
+      ${E.fates.map((f) => `<div class="fate">${face(f.who)}<div><b>${esc(nm(f.who))}</b> · ${esc(f.text)}</div></div>`).join('')}
+      ${E.secret ? `<p class="note" style="margin:12px 0">رازی که هیچ‌وقت نفهمیدی: ${esc(E.secret)}</p>` : ''}
+      <div class="row" style="justify-content:center;margin-top:10px">
+        <button class="btn primary" id="againBtn" type="button">هفت روزِ تازه</button>
+        <button class="btn" id="shareBtn" type="button">فرستادن برای دوستان</button>
+      </div>`;
+    $('endOv').hidden = false;
+    $('againBtn').onclick = () => { $('endOv').hidden = true; newGame(); renderAll(); };
+    $('shareBtn').onclick = () => {
+      const t = `من در بازی «چاپار» هفت روز همه‌ی نامه‌های یک ده را خواندم، جعل کردم و سوزاندم… و لقبم شد «${E.title}» ${'★'.repeat(E.stars)}\nتو چه چاپاری می‌شوی؟`;
+      try { navigator.clipboard.writeText(t).then(() => toast('متن کپی شد.'), () => toast(t)); } catch { toast(t); }
+    };
+  }
+
+  // ================= Book =================
+  function webSVG() {
+    const cx = 170, cy = 165, R = 118, pos = {};
+    IDS.forEach((id, i) => { const a = -Math.PI / 2 + (i / IDS.length) * Math.PI * 2; pos[id] = [cx + Math.cos(a) * R, cy + Math.sin(a) * R]; });
+    let edges = '';
+    for (const [k, v] of Object.entries(S.rel)) {
+      const [a, b] = k.split('|'); if (!pos[a] || !pos[b] || Math.abs(v) < 8) continue;
+      const col = v > 0 ? '#2f6e69' : '#a3281c', w = 1 + Math.abs(v) / 22;
+      edges += `<line x1="${pos[a][0]}" y1="${pos[a][1]}" x2="${pos[b][0]}" y2="${pos[b][1]}" stroke="${col}" stroke-width="${w.toFixed(1)}" stroke-opacity="${(0.25 + Math.abs(v) / 140).toFixed(2)}" ${v < 0 ? 'stroke-dasharray="5 4"' : ''}/>`;
+    }
+    let nodes = '';
+    for (const id of IDS) {
+      const [x, y] = pos[id], s = S.sus[id];
+      nodes += `<g transform="translate(${x},${y})"><circle r="22" fill="${P[id].c}" stroke="#f3e8cf" stroke-width="3"/><text y="7" text-anchor="middle" font-size="20" fill="#fff8ea" font-family="Aref Ruqaa, serif" font-weight="700">${P[id].g}</text>
+        <text y="40" text-anchor="middle" font-size="12" font-weight="700" fill="#2b2016">${esc(nm(id))}</text>
+        <text y="55" text-anchor="middle" font-size="11" fill="${s > 50 ? '#a3281c' : '#6a5640'}">شک به تو: ${fa(s)}٪</text></g>`;
+    }
+    return `<svg class="web" viewBox="0 0 340 340" role="img" aria-label="رابطه‌ی اهالی">${edges}${nodes}</svg>`;
+  }
+  $('bookBtn').addEventListener('click', () => {
+    $('book').innerHTML = `
+      <button class="close" type="button" data-close="bookOv" aria-label="بستن">×</button>
+      <h2>دفترِ چاپار</h2>
+      <div class="grid" style="margin-top:10px">
+        <div>
+          <h4 style="margin:0 0 4px;font-size:13px;color:var(--ink-2)">دل‌های ده · <span style="color:var(--teal)">— مهر</span> <span style="color:var(--wax)">- - کینه</span></h4>
+          ${webSVG()}
+          <h4 style="margin:8px 0 4px;font-size:13px;color:var(--ink-2)">روزهای گذشته</h4>
+          <ol class="chron">${S.chron.map((c) => `<li>${esc(c.headline)}</li>`).join('') || '<li>هنوز شبی نگذشته.</li>'}</ol>
+        </div>
+        <div>
+          <h4 style="margin:0 0 6px;font-size:13px;color:var(--ink-2)">نامه‌هایی که خوانده‌ای (${fa(S.archive.length)})</h4>
+          <div class="arch">${S.archive.slice().reverse().map((a) => `<details><summary>روز ${fa(a.day)} · ${esc(a.from)} ← ${esc(a.to)}${a.forged ? ' · جعلی' : ''}</summary><p>${esc(a.text)}</p></details>`).join('') || '<p class="note">هنوز مهرِ هیچ نامه‌ای را نشکسته‌ای.</p>'}</div>
+        </div>
+      </div>
+      <div class="row" style="margin-top:14px"><button class="btn" id="restartBtn" type="button">شروع دوباره</button><span class="note" id="restartNote"></span></div>`;
+    $('bookOv').hidden = false;
+    let armed = false;
+    $('restartBtn').onclick = () => { if (!armed) { armed = true; $('restartNote').textContent = 'همه‌ی هفت روز پاک می‌شود. برای اطمینان دوباره بزن.'; return; } $('bookOv').hidden = true; newGame(); renderAll(); };
+  });
+
+  // ================= Common =================
+  document.addEventListener('click', (e) => { const c = e.target.closest('[data-close]'); if (c) { $(c.dataset.close).hidden = true; if (c.dataset.close === 'deskOv') deskId = null; } });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { for (const id of ['deskOv', 'anonOv', 'bookOv']) if (!$(id).hidden) { $(id).hidden = true; if (id === 'deskOv') deskId = null; } } });
+  let toastT;
+  function toast(t) { const el = $('toast'); el.textContent = t; el.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => (el.hidden = true), 4200); }
+  function renderHeader() {
+    const d = Math.min(S.day, 7);
+    $('dayName').textContent = S.day > 7 ? 'پایانِ هفته' : 'روزِ ' + DAYS[d - 1];
+    $('days').innerHTML = DAYS.map((_, i) => `<i class="${i + 1 < S.day ? 'done' : i + 1 === S.day ? 'now' : ''}"></i>`).join('');
+    $('rep').style.width = repValue() + '%';
+    $('wax').innerHTML = Array.from({ length: 4 }, (_, i) => `<b class="${i < S.wax ? '' : 'gone'}"></b>`).join('');
+    $('anonBtn').disabled = S.wroteToday || S.day > 7;
+    $('endBtn').disabled = S.day > 7;
+    $('maphint').hidden = S.day > 1 || S.log.length > 2;
+  }
+  function renderAll() { renderHeader(); renderBag(); renderMap(); }
+
+  // ================= Boot =================
+  drawMap();
+  const had = load();
+  if (!had) newGame();
+  renderAll();
+  $('contBtn').hidden = !had || (S.day === 1 && !S.log.length);
+  $('newBtn').addEventListener('click', () => { newGame(); renderAll(); $('titleOv').hidden = true; });
+  $('contBtn').addEventListener('click', () => { $('titleOv').hidden = true; if (S.day > 7 || S.dismissed) runEnding(); });
+})();
+</script>
