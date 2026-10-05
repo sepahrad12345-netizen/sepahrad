@@ -303,7 +303,7 @@ const GradeShader = {
   vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
   fragmentShader: `uniform sampler2D tDiffuse; uniform float exposure; uniform float sat; varying vec2 vUv;
     vec3 aces(vec3 x){ return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0); }
-    void main(){ vec3 c = texture2D(tDiffuse, vUv).rgb * exposure; c = aces(c); float l = dot(c, vec3(0.2126, 0.7152, 0.0722)); c = mix(vec3(l), c, sat);
+    void main(){ vec3 c = texture2D(tDiffuse, vUv).rgb * exposure; c = aces(c); c = mix(c, c * c * (3.0 - 2.0 * c), 0.22); c *= vec3(1.02, 1.0, 0.97); float l = dot(c, vec3(0.2126, 0.7152, 0.0722)); c = mix(vec3(l), c, sat);
       vec2 d = vUv - 0.5; c *= 1.0 - dot(d, d) * 0.55; gl_FragColor = vec4(c, 1.0); }`,
 };
 let composer = null, bloom = null, grade = null;
@@ -313,7 +313,8 @@ function setupComposer() {
   try {
     const gl = renderer.getContext();
     const hdr = renderer.capabilities.isWebGL2 && (gl.getExtension('EXT_color_buffer_float') || gl.getExtension('EXT_color_buffer_half_float'));
-    const rt = new THREE.WebGLRenderTarget(2, 2, { type: hdr ? THREE.HalfFloatType : THREE.UnsignedByteType, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, format: THREE.RGBAFormat });
+    const rto = { type: hdr ? THREE.HalfFloatType : THREE.UnsignedByteType, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, format: THREE.RGBAFormat };
+    const rt = renderer.capabilities.isWebGL2 && THREE.WebGLMultisampleRenderTarget ? Object.assign(new THREE.WebGLMultisampleRenderTarget(2, 2, rto), { samples: 4 }) : new THREE.WebGLRenderTarget(2, 2, rto);
     composer = new THREE.EffectComposer(renderer, rt);
     composer.addPass(new THREE.RenderPass(scene, camera));
     bloom = new THREE.UnrealBloomPass(new THREE.Vector2(256, 256), 0.55, 0.5, 0.92);
@@ -341,23 +342,33 @@ function textSprite(text, opts = {}) {
 }
 
 // ============================================================ sky, lights, day cycle
-const skyU = { top: { value: new THREE.Color() }, hor: { value: new THREE.Color() }, sunDir: { value: new THREE.Vector3() }, sunCol: { value: new THREE.Color() }, night: { value: 0 } };
+const skyU = { top: { value: new THREE.Color() }, hor: { value: new THREE.Color() }, sunDir: { value: new THREE.Vector3() }, sunCol: { value: new THREE.Color() }, night: { value: 0 }, time: { value: 0 } };
 const sky = new THREE.Mesh(new THREE.SphereGeometry(2200, 32, 16), new THREE.ShaderMaterial({
   uniforms: skyU, side: THREE.BackSide, depthWrite: false,
   vertexShader: 'varying vec3 vP; void main(){ vP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
-  fragmentShader: `uniform vec3 top; uniform vec3 hor; uniform vec3 sunDir; uniform vec3 sunCol; uniform float night; varying vec3 vP;
+  fragmentShader: `uniform vec3 top; uniform vec3 hor; uniform vec3 sunDir; uniform vec3 sunCol; uniform float night; uniform float time; varying vec3 vP;
     float h(vec3 p){ p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+    float h2(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+    float n2(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h2(i), h2(i + vec2(1.0, 0.0)), f.x), mix(h2(i + vec2(0.0, 1.0)), h2(i + 1.0), f.x), f.y); }
+    float fbm(vec2 p){ float s = 0.0, a = 0.5; for (int i = 0; i < 5; i++) { s += a * n2(p); p = p * 2.03 + 17.1; a *= 0.5; } return s; }
     void main(){ vec3 d = normalize(vP); float y = d.y;
       vec3 c = mix(hor, top, pow(clamp(y * 1.6, 0.0, 1.0), 0.6)); if (y < 0.0) c = hor * 0.8;
       float sd = max(dot(d, sunDir), 0.0);
       c += sunCol * (pow(sd, 8.0) * 0.25 + smoothstep(0.9993, 0.9997, sd) * 3.0);
       if (night > 0.0 && y > 0.0) { vec3 cell = floor(d * 380.0); float s = h(cell); c += vec3(step(0.9985, s)) * night * smoothstep(0.0, 0.25, y) * 1.4; }
+      if (y > 0.0) { // cumulus deck drifting over Tehran
+        vec2 cp = d.xz / (y + 0.12) * 1.7 + vec2(time * 0.012, time * 0.005);
+        float n = fbm(cp), cov = smoothstep(0.5, 0.82, n) * smoothstep(0.0, 0.18, y);
+        float lit = clamp(0.55 + (n - fbm(cp + sunDir.xz * 0.06)) * 4.0, 0.0, 1.0);
+        vec3 cc = mix(hor * 0.85, vec3(1.0, 0.98, 0.95), lit) * mix(1.0, 0.12, night) + sunCol * pow(sd, 6.0) * 0.5 * (1.0 - night);
+        c = mix(c, cc, cov * 0.9);
+      }
       gl_FragColor = vec4(c, 1.0); }`,
 }));
 sky.frustumCulled = false; sky.renderOrder = -10; scene.add(sky);
 const hemi = new THREE.HemisphereLight(0xdfeaff, 0x5a5048, 1); scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xffffff, 1.2); scene.add(sun); scene.add(sun.target);
-if (HIGH()) { sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); const sc = sun.shadow.camera; sc.left = -90; sc.right = 90; sc.top = 90; sc.bottom = -90; sc.near = 10; sc.far = 400; sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.6; }
+if (HIGH()) { sun.castShadow = true; sun.shadow.mapSize.set(4096, 4096); const sc = sun.shadow.camera; sc.left = -90; sc.right = 90; sc.top = 90; sc.bottom = -90; sc.near = 10; sc.far = 400; sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.6; }
 const nightU = { value: 0 };
 // keyframes: hour -> [skyTop, skyHor, fog, sunCol, sunI, hemiI, night]
 const SKYK = [
@@ -496,11 +507,34 @@ const WORLD_VS = (sh) => 'varying vec3 vWP; varying vec3 vWN;\n' + sh.vertexShad
   vWP = (modelMatrix * wpp).xyz; vWN = normalize(mat3(modelMatrix) * objectNormal);`);
 // u runs left-to-right for someone facing the wall, so shop signs never read mirrored
 const FACE_U = 'float faceU = abs(vWN.x) > 0.5 ? (vWN.x > 0.0 ? -vWP.z : vWP.z) : (vWN.z > 0.0 ? vWP.x : -vWP.x);';
+// normal map from a height canvas (bright = high); tangent space with v pointing up the texture
+function normalTex(src, strength, heightOf) {
+  const w = src.width, h = src.height, d = src.getContext('2d').getImageData(0, 0, w, h).data, H = new Float32Array(w * h);
+  for (let i = 0; i < w * h; i++) H[i] = heightOf ? heightOf(d, i * 4) : (d[i * 4] * 0.3 + d[i * 4 + 1] * 0.59 + d[i * 4 + 2] * 0.11) / 255;
+  const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d'), out = g.createImageData(w, h), o = out.data;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const xl = (x - 1 + w) % w, xr = (x + 1) % w, yu = (y - 1 + h) % h, yd = (y + 1) % h;
+    const nx = -(H[y * w + xr] - H[y * w + xl]) * strength, ny = (H[yd * w + x] - H[yu * w + x]) * strength, l = Math.hypot(nx, ny, 1), k = (y * w + x) * 4;
+    o[k] = (nx / l * 0.5 + 0.5) * 255; o[k + 1] = (ny / l * 0.5 + 0.5) * 255; o[k + 2] = (1 / l * 0.5 + 0.5) * 255; o[k + 3] = 255;
+  }
+  g.putImageData(out, 0, 0); const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = ANISO; return t;
+}
+// normal mapping with world-space UVs: tangent frame from screen derivatives of the same UV the colour uses
+const PERTURB_W = `vec3 perturbW(vec3 eye_pos, vec3 surf_norm, vec3 mapN, float fd, vec2 st) {
+  vec3 q0 = dFdx(eye_pos), q1 = dFdy(eye_pos); vec2 st0 = dFdx(st), st1 = dFdy(st);
+  vec3 N = surf_norm, q1perp = cross(q1, N), q0perp = cross(N, q0);
+  vec3 T = q1perp * st0.x + q0perp * st1.x, B = q1perp * st0.y + q0perp * st1.y;
+  float det = max(dot(T, T), dot(B, B)), sc = det == 0.0 ? 0.0 : fd * inversesqrt(det);
+  return normalize(T * (mapN.x * sc) + B * (mapN.y * sc) + mapN.z * N); }\n`;
+const NORMAL_W = (uv, mix) => `#ifdef USE_NORMALMAP
+  vec3 mapN = texture2D(normalMap, ${uv}).xyz * 2.0 - 1.0; mapN.xy *= normalScale; ${mix || ''}
+  normal = perturbW(-vViewPosition, normal, mapN, faceDirection, ${uv});
+#endif`;
 function worldMat(tex, scale, opts = {}) {
-  const m = new THREE.MeshStandardMaterial(Object.assign({ map: tex, roughness: 0.9, metalness: 0 }, opts.mat || {}));
+  const m = new THREE.MeshStandardMaterial(Object.assign({ map: tex, roughness: 0.9, metalness: 0, envMapIntensity: 0.55 }, opts.mat || {}));
   m.onBeforeCompile = (sh) => {
     sh.vertexShader = WORLD_VS(sh);
-    sh.fragmentShader = 'varying vec3 vWP; varying vec3 vWN;\n' + sh.fragmentShader.replace('#include <map_fragment>', `${FACE_U}
+    sh.fragmentShader = 'varying vec3 vWP; varying vec3 vWN;\n' + PERTURB_W + sh.fragmentShader.replace('#include <normal_fragment_maps>', NORMAL_W('wuv')).replace('#include <map_fragment>', `${FACE_U}
       vec2 wuv = abs(vWN.y) > 0.5 ? vWP.xz * ${scale.toFixed(4)} : vec2(faceU * ${scale.toFixed(4)}, vWP.y * ${scale.toFixed(4)});
       vec4 texelColor = texture2D(map, wuv);
       ${opts.curb ? 'if (abs(vWN.y) < 0.5) { float st = step(0.5, fract(faceU * 0.5)); texelColor.rgb = mix(vec3(0.95, 0.8, 0.16), vec3(0.08), st); }' : ''}
@@ -517,16 +551,16 @@ const asphaltTex = tileTex(512, (g, s) => {
 });
 const paverTex = tileTex(512, (g, s) => {
   const n = 8, t = s / n;
-  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) { const v = randi(-12, 12), rose = (i + j) % 2 === 0; g.fillStyle = rose ? `rgb(${160 + v},${140 + v},${130 + v})` : `rgb(${148 + v},${146 + v},${140 + v})`; g.fillRect(i * t, j * t, t, t); }
+  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) { const v = randi(-12, 12), rose = (i + j) % 2 === 0; g.fillStyle = rose ? `rgb(${138 + v},${118 + v},${108 + v})` : `rgb(${128 + v},${126 + v},${120 + v})`; g.fillRect(i * t, j * t, t, t); }
   grainify(g, s, 24); g.strokeStyle = 'rgba(70,64,58,.6)'; g.lineWidth = 3;
   for (let i = 0; i <= n; i++) { g.beginPath(); g.moveTo(i * t, 0); g.lineTo(i * t, s); g.moveTo(0, i * t); g.lineTo(s, i * t); g.stroke(); }
 });
 const grassTex = tileTex(512, (g, s) => { g.fillStyle = '#4c7633'; g.fillRect(0, 0, s, s); for (let i = 0; i < 9000; i++) { g.fillStyle = `hsl(${rand(78, 112)},${rand(30, 55)}%,${rand(20, 42)}%)`; g.fillRect(rand(0, s), rand(0, s), 1.5, rand(3, 8)); } });
 const dirtTex = tileTex(256, (g, s) => { g.fillStyle = '#8a7c66'; g.fillRect(0, 0, s, s); grainify(g, s, 40); });
 
-const asphalt = new THREE.Mesh(new THREE.PlaneGeometry(MAPW, MAPW), worldMat(asphaltTex, 1 / 7, { mat: { roughness: 0.88 }, key: 'asp' }));
+const asphalt = new THREE.Mesh(new THREE.PlaneGeometry(MAPW, MAPW), worldMat(asphaltTex, 1 / 7, { mat: { roughness: 0.88, normalMap: normalTex(asphaltTex.image, 5), normalScale: new THREE.Vector2(0.6, 0.6) }, key: 'asp' }));
 asphalt.rotation.x = -Math.PI / 2; asphalt.receiveShadow = true; scene.add(asphalt);
-const outer = new THREE.Mesh(new THREE.PlaneGeometry(6000, 6000), worldMat(dirtTex, 1 / 9, { key: 'dirt' }));
+const outer = new THREE.Mesh(new THREE.PlaneGeometry(6000, 6000), worldMat(asphaltTex, 1 / 9, { mat: { color: '#9a958c' }, key: 'dirt' }));
 outer.rotation.x = -Math.PI / 2; outer.position.y = -0.05; scene.add(outer);
 const SIDEWALK_H = 0.18;
 function groundH(x, z) {
@@ -537,7 +571,7 @@ function groundH(x, z) {
 }
 {
   const unit = new THREE.BoxGeometry(1, 1, 1).translate(0, 0.5, 0), m4 = new THREE.Matrix4();
-  const walks = new THREE.InstancedMesh(unit, worldMat(paverTex, 1 / 3.2, { curb: true, key: 'pav' }), N * N);
+  const walks = new THREE.InstancedMesh(unit, worldMat(paverTex, 1 / 3.2, { curb: true, key: 'pav', mat: { normalMap: normalTex(paverTex.image, 7), normalScale: new THREE.Vector2(1, 1) } }), N * N);
   const parks = []; let i = 0;
   for (let bx = 0; bx < N; bx++) for (let bz = 0; bz < N; bz++) {
     m4.makeScale(BLOCK, SIDEWALK_H, BLOCK).setPosition(bctr(bx), 0, bctr(bz)); walks.setMatrixAt(i++, m4);
@@ -611,7 +645,6 @@ function facadeTextures(style) {
       const x = bx * B + 58, y = fy * B + 34, w = 140, h = 178;
       glass(x, y, w, h); frame(x, y, w, h, '#9aa2a8');
       g.fillStyle = '#bfb091'; g.fillRect(x - 12, y + h, w + 24, 11); g.fillRect(x - 12, y - 10, w + 24, 10);
-      if (bx === 1) { g.fillStyle = '#b5a685'; g.fillRect(bx * B + 30, y + h + 11, 196, 14); railing(bx * B + 34, y + h - 52, 188, 52); }
     }
   } else if (style === 'brick') { // three-centimetre Tehran brick
     g.fillStyle = '#b8a48c'; g.fillRect(0, 0, FS, FS);
@@ -652,18 +685,21 @@ function facadeTextures(style) {
 }
 function buildingMat(style) {
   const { map, mask } = facadeTextures(style), glassy = style === 'glass';
-  const m = new THREE.MeshStandardMaterial({ map, roughness: glassy ? 0.25 : 0.85, metalness: glassy ? 0.5 : 0.04 });
+  const md = map.image.getContext('2d').getImageData(0, 0, FS, FS).data;
+  const nmap = normalTex(mask.image, glassy ? 6 : 14, (d, i) => 1 - d[i] / 255 * 0.85 + (md[i] * 0.3 + md[i + 1] * 0.59 + md[i + 2] * 0.11) / 255 * 0.12);
+  const m = new THREE.MeshStandardMaterial({ map, roughness: glassy ? 0.25 : 0.85, metalness: glassy ? 0.5 : 0.04, normalMap: nmap, normalScale: new THREE.Vector2(1, 1) });
   m.onBeforeCompile = (sh) => {
     sh.uniforms.night = nightU; sh.uniforms.maskMap = { value: mask };
     sh.vertexShader = WORLD_VS(sh);
-    sh.fragmentShader = 'uniform float night; uniform sampler2D maskMap; varying vec3 vWP; varying vec3 vWN;\nfloat hh(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }\n' + sh.fragmentShader
+    sh.fragmentShader = 'uniform float night; uniform sampler2D maskMap; varying vec3 vWP; varying vec3 vWN;\nfloat hh(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }\n' + PERTURB_W + sh.fragmentShader
+      .replace('#include <normal_fragment_maps>', NORMAL_W('fuv', 'mapN = mix(vec3(0.0, 0.0, 1.0), mapN, wall);'))
       .replace('#include <map_fragment>', `${FACE_U}
         float wall = 1.0 - step(0.5, abs(vWN.y));
         vec2 fuv = vec2(faceU / 6.0, (vWP.y - ${SHOP_H.toFixed(2)}) / 6.4);
         vec4 texelColor = texture2D(map, fuv);
         float glassM = texture2D(maskMap, fuv).r * wall * step(${SHOP_H.toFixed(2)}, vWP.y);
         vec3 roofC = vec3(0.36, 0.35, 0.33) * (0.8 + 0.35 * hh(floor(vWP.xz * 0.8)));
-        diffuseColor.rgb *= mix(roofC, texelColor.rgb, wall);
+        diffuseColor.rgb *= mix(roofC, texelColor.rgb, wall) * mix(1.0, 0.72 + 0.28 * smoothstep(0.0, 2.5, vWP.y - ${SHOP_H.toFixed(2)}), wall * step(${SHOP_H.toFixed(2)}, vWP.y));
         vec2 cid = vec2(floor(faceU / 3.0), floor((vWP.y - ${SHOP_H.toFixed(2)}) / 3.2)) + floor(vWP.xz * 0.05) * 7.0;
         float lit = step(${glassy ? '0.6' : '0.48'}, hh(cid));`)
       .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\n roughnessFactor = mix(roughnessFactor, 0.05, glassM);')
@@ -792,6 +828,15 @@ function buildSpecial(kind, bx, bz) {
   }
 }
 for (const [k, v] of Object.entries(SPECIAL)) if (PLACES[v] && v !== 'azadi' && v !== 'milad') { const [bx, bz] = k.split(',').map(Number); buildSpecial(v, bx, bz); }
+// distant skyline beyond the playable city: no collision, it melts into the haze
+{
+  const inner = W / 2 + 70, outer = W / 2 + 620, FAR = ['stone', 'brick', 'cream', 'white', 'concrete', 'glass', 'white', 'stone'];
+  for (let k = 0, n = HIGH() ? 900 : 420; k < n;) {
+    const x = rand(-outer, outer), z = rand(-outer, outer); if (Math.max(Math.abs(x), Math.abs(z)) < inner) continue; k++;
+    const st = pick(FAR), h = st === 'glass' ? SHOP_H + 3.2 * randi(12, 40) : SHOP_H + 3.2 * randi(2, 12);
+    bldList.push({ cx: x, cz: z, w: rand(14, 36), d: rand(14, 36), h, style: st, y0: 0, far: true });
+  }
+}
 {
   const unit = new THREE.BoxGeometry(1, 1, 1).translate(0, 0.5, 0), m4 = new THREE.Matrix4(), col = new THREE.Color();
   for (const style of ['stone', 'brick', 'cream', 'white', 'concrete', 'glass']) {
@@ -985,8 +1030,8 @@ function bfs(a, b) {
 function nearestRoadSpot(x, z) {
   const i = clamp(Math.round((x - rc(0)) / CELL), 0, N), j = clamp(Math.round((z - rc(0)) / CELL), 0, N);
   const dx = Math.abs(x - rc(i)), dz = Math.abs(z - rc(j));
-  if (dx < dz) { const side = x > rc(i) ? 1 : -1; return { x: rc(i) + side * 4, z: clamp(z, H0 + 6, -H0 - 6), h: side > 0 ? 0 : Math.PI }; }
-  const side = z > rc(j) ? 1 : -1; return { x: clamp(x, H0 + 6, -H0 - 6), z: rc(j) + side * 4, h: side > 0 ? -Math.PI / 2 : Math.PI / 2 };
+  if (dx < dz) { const side = x > rc(i) ? 1 : -1; return { x: rc(i) + side * 4, z: clamp(z, H0 + 6, -H0 - 6), h: side > 0 ? Math.PI : 0 }; }
+  const side = z > rc(j) ? 1 : -1; return { x: clamp(x, H0 + 6, -H0 - 6), z: rc(j) + side * 4, h: side > 0 ? Math.PI / 2 : -Math.PI / 2 };
 }
 function randomSidewalkSpot(nearX, nearZ, minD, maxD) {
   for (let k = 0; k < 60; k++) {
@@ -1037,7 +1082,10 @@ const rimTex = canvasTex(256, 256, (g, s) => {
 });
 const blobTex = canvasTex(128, 128, (g, s) => { const gr = g.createRadialGradient(s / 2, s / 2, s * 0.18, s / 2, s / 2, s / 2); gr.addColorStop(0, 'rgba(0,0,0,.75)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, s, s); });
 const CM = {
-  glass: new THREE.MeshStandardMaterial({ color: '#111a22', metalness: 0.9, roughness: 0.06, envMapIntensity: 1.6 }),
+  glass: new THREE.MeshStandardMaterial({ color: '#0d151c', metalness: 0.85, roughness: 0.05, envMapIntensity: 1.7, transparent: true, opacity: 0.74 }),
+  interior: new THREE.MeshStandardMaterial({ color: '#2b2724', roughness: 0.85 }),
+  well: new THREE.MeshStandardMaterial({ color: '#0b0b0c', roughness: 1, side: THREE.DoubleSide }),
+  brake: new THREE.MeshStandardMaterial({ color: '#8a0a0a', emissive: new THREE.Color(1, 0.06, 0.04), emissiveIntensity: 3.2, roughness: 0.15, metalness: 0.3 }),
   trim: new THREE.MeshStandardMaterial({ color: '#141619', roughness: 0.55, metalness: 0.2 }),
   chrome: new THREE.MeshStandardMaterial({ color: '#e6eaee', roughness: 0.12, metalness: 1, envMapIntensity: 1.4 }),
   wheel: new THREE.MeshStandardMaterial({ map: rimTex, roughness: 0.45, metalness: 0.45 }),
@@ -1145,7 +1193,13 @@ function carParts(type) {
   trimP.push({ g: new THREE.BoxGeometry(Wd * 0.5, 0.06, 0.05), m: M4(0, y0 + 0.22, L / 2 + 0.06) });
   plateP.push({ g: new THREE.PlaneGeometry(0.52, 0.114), m: M4(0, y0 + 0.24, L / 2 + 0.09) });
   plateP.push({ g: new THREE.PlaneGeometry(0.52, 0.114), m: M4(0, Math.min(tail - 0.22, y0 + 0.36), -L / 2 - 0.09, 0, Math.PI, 0) });
-  const out = { paint: mergeParts(paintP), glass: mergeParts(glassP), trim: mergeParts(trimP), chrome: mergeParts(chromeP), head: mergeParts(headP), tail: mergeParts(tailP), plate: mergeParts(plateP), B, zf, zr, R, kind };
+  // cabin: seats, dashboard and wheel seen through the tinted glass; dark wheel wells behind the tyres
+  const inner = [], cz0 = cab[0][0], cz1 = cab[cab.length - 1][0], seatY = belt0 - 0.38;
+  for (const sx of [-1, 1]) { inner.push({ g: new THREE.BoxGeometry(0.5, 0.14, 0.5), m: M4(sx * Wc * 0.24, seatY, cz0 - 0.75) }, { g: new THREE.BoxGeometry(0.48, 0.62, 0.12), m: M4(sx * Wc * 0.24, seatY + 0.32, cz0 - 1.02, -0.2, 0, 0) }); }
+  if (kind !== 'pickup' && kind !== 'sport') inner.push({ g: new THREE.BoxGeometry(Wc * 0.85, 0.16, 0.5), m: M4(0, seatY, cz1 + 0.75) }, { g: new THREE.BoxGeometry(Wc * 0.85, 0.55, 0.12), m: M4(0, seatY + 0.3, cz1 + 0.52, -0.2, 0, 0) });
+  inner.push({ g: new THREE.BoxGeometry(Wc * 0.92, 0.22, 0.45), m: M4(0, belt0 - 0.02, cz0 - 0.18) }, { g: new THREE.TorusGeometry(0.17, 0.025, 6, 16), m: M4(-Wc * 0.24, belt0 + 0.12, cz0 - 0.42, -0.5, 0, 0) });
+  const wells = [zf, zr].map((zz) => ({ g: new THREE.CylinderGeometry(ar - 0.07, ar - 0.07, Wd - 0.06, 16, 1, true, 0, Math.PI).rotateZ(Math.PI / 2), m: M4(0, R, zz) }));
+  const out = { interior: mergeParts(inner), well: mergeParts(wells), paint: mergeParts(paintP), glass: mergeParts(glassP), trim: mergeParts(trimP), chrome: mergeParts(chromeP), head: mergeParts(headP), tail: mergeParts(tailP), plate: mergeParts(plateP), B, zf, zr, R, kind };
   if (B.bed) { // open cargo bed: side walls and tailgate in body colour, ribbed floor
     const bz0 = B.bed[0] * L, bz1 = -L / 2, bl = bz0 - bz1;
     const walls = [-1, 1].map((sx) => ({ g: new THREE.BoxGeometry(0.07, 0.3, bl), m: M4(sx * (Wd / 2 - 0.035), 0.87, (bz0 + bz1) / 2) }));
@@ -1188,15 +1242,33 @@ function buildBike(color) {
   const tl = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.06, 0.04), CM.tail); tl.position.set(0, 0.8, -0.9); body.add(tl);
   return { root, body, wheels };
 }
+// the flagship: a detailed sports car model, repainted in the buyer's colour
+function buildSport(color) {
+  const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
+  const car = MODELS.sport.clone(true), wheels = [], P = paint(color); let tail = null;
+  car.traverse((o) => {
+    if (!o.isMesh) return; o.castShadow = HIGH();
+    const n = o.material.name || '';
+    if (n === 'Body_Color') o.material = P; else if (/Glass/i.test(n) && !/Taillight|Projector/.test(n)) o.material = CM.glass; else if (n === 'Tires') o.material = CM.trim;
+    else if (/Taillight/.test(n)) { o.material = CM.tail; tail = o; } else if (/Projector/.test(n)) o.material = CM.head;
+  });
+  const box = new THREE.Box3().setFromObject(car), s = CARS.sport.len / (box.max.z - box.min.z);
+  car.scale.setScalar(s); car.position.y = -box.min.y * s;
+  const fl = car.getObjectByName('wheel_fl'); if (fl && fl.position.z < 0) car.rotation.y = Math.PI;
+  body.add(car);
+  for (const k of ['fl', 'fr', 'rl', 'rr']) { const w = car.getObjectByName('wheel_' + k); if (w) { w.rotation.order = 'YXZ'; wheels.push({ pivot: w, spin: w, front: k[0] === 'f' }); } }
+  return { root, body, wheels, tail };
+}
 function buildCar(type, color) {
   const T = CARS[type];
   let built;
   if (T.bike) built = buildBike(color);
+  else if (type === 'sport' && MODELS.sport) built = buildSport(color);
   else {
     const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
     const G = carParts(type), wheels = [];
     const mk = (g, mat, shadow = true) => { const m = new THREE.Mesh(g, mat); m.castShadow = shadow && HIGH(); body.add(m); return m; };
-    mk(G.paint, paint(color)); mk(G.glass, CM.glass); mk(G.trim, CM.trim); mk(G.chrome, CM.chrome, false); mk(G.head, CM.head, false); mk(G.tail, CM.tail, false); mk(G.plate, pick(plateMats), false);
+    mk(G.paint, paint(color)); mk(G.interior, CM.interior, false); mk(G.well, CM.well, false); const gl = mk(G.glass, CM.glass, false); gl.renderOrder = 2; mk(G.trim, CM.trim); mk(G.chrome, CM.chrome, false); mk(G.head, CM.head, false); var tailMesh = mk(G.tail, CM.tail, false); mk(G.plate, pick(plateMats), false);
     if (G.bed) mk(G.bed, CM.bed, false);
     const tw = T.wid / 2 - 0.15;
     for (const sx of [-1, 1]) { addWheel(root, sx * tw, G.R, G.zf, G.R, 0.24, true, wheels); addWheel(root, sx * tw, G.R, G.zr, G.R, 0.24, false, wheels); }
@@ -1210,7 +1282,7 @@ function buildCar(type, color) {
       const r = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.12, 0.26), CM.sirenR); r.position.set(-0.29, T.h + 0.13, -T.len * 0.11); body.add(r);
       const b = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.12, 0.26), CM.sirenB); b.position.set(0.29, T.h + 0.13, -T.len * 0.11); body.add(b);
     }
-    built = { root, body, wheels };
+    built = { root, body, wheels, tail: tailMesh };
   }
   const blob = new THREE.Mesh(new THREE.PlaneGeometry(T.wid + 0.7, T.len + 0.8).rotateX(-Math.PI / 2), CM.blob); blob.position.y = 0.02; blob.renderOrder = 1; built.root.add(blob);
   return built;
@@ -1220,7 +1292,7 @@ class Car {
   constructor(type, color, x, z, h) {
     this.type = type; this.color = color || (type === 'taxi' ? '#f2c419' : type === 'police' ? '#f4f4f4' : pick(TRAFFIC_COLORS));
     this.T = CARS[type];
-    const b = buildCar(type, this.color); this.mesh = b.root; this.body = b.body; this.wheels = b.wheels; this.spin = 0; this.pitch = 0; this.pvf = 0;
+    const b = buildCar(type, this.color); this.mesh = b.root; this.body = b.body; this.wheels = b.wheels; this.tail = b.tail; this.spin = 0; this.pitch = 0; this.pvf = 0;
     this.beams = [];
     if (!this.T.bike) for (const sx of [-1, 1]) { const bm = new THREE.Sprite(headBeamMat); bm.scale.setScalar(2.2); bm.position.set(sx * this.T.wid * 0.33, 0.75, this.T.len / 2 + 0.3); this.body.add(bm); this.beams.push(bm); }
     scene.add(this.mesh);
@@ -1233,6 +1305,129 @@ class Car {
   dispose() { scene.remove(this.mesh); }
 }
 const cars = [];
+// ============================================================ street life: balconies, billboards, traffic lights, parked cars
+const STREET = {};
+{
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(1, 1, 1), p = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
+  // --- balconies on travertine buildings, lined up with the second window bay of every floor
+  const balc = [];
+  for (const b of bldList) {
+    if (b.style !== 'stone' || b.y0 || b.far) continue;
+    const faces = [[0, 1, b.cz + b.d / 2, (x) => x], [0, -1, b.cz - b.d / 2, (x) => -x], [1, 0, b.cx + b.w / 2, (z) => -z], [-1, 0, b.cx - b.w / 2, (z) => z]];
+    for (const [nx, nz, wall, fu] of faces) {
+      const along0 = nx ? b.cz - b.d / 2 : b.cx - b.w / 2, along1 = nx ? b.cz + b.d / 2 : b.cx + b.w / 2;
+      const sg = fu(1); // faceU = sg * t along this face; bay centres sit at faceU = 6k + 4.5
+      for (let k = Math.floor(Math.min(sg * along0, sg * along1) / 6) - 1; k <= Math.ceil(Math.max(sg * along0, sg * along1) / 6); k++) {
+        const t = sg * (6 * k + 4.5);
+        if (t < along0 + 1.5 || t > along1 - 1.5) continue;
+        for (let f = 0; f < 20; f++) for (const v of [0.086, 0.586]) {
+          const y = SHOP_H + 6.4 * (f + v); if (y < SHOP_H + 1 || y + 1.4 > b.h) continue;
+          balc.push([nx ? wall : t, y, nx ? t : wall, Math.atan2(nx, nz)]);
+        }
+      }
+    }
+  }
+  const railTex = canvasTex(256, 128, (g, w, h) => { g.clearRect(0, 0, w, h); g.fillStyle = '#2a2d31'; g.fillRect(0, 0, w, 10); g.fillRect(0, h - 8, w, 8); for (let x = 4; x < w; x += 14) g.fillRect(x, 0, 4, h); g.fillStyle = 'rgba(160,190,210,.28)'; g.fillRect(0, 10, w, h - 18); });
+  const slabG = new THREE.BoxGeometry(2.5, 0.16, 1.05).translate(0, -0.08, 0.52);
+  const railG = mergeParts([
+    { g: new THREE.PlaneGeometry(2.5, 1.0), m: M4(0, 0.5, 1.03) },
+    { g: new THREE.PlaneGeometry(1.03, 1.0), m: M4(1.24, 0.5, 0.52, 0, Math.PI / 2, 0) },
+    { g: new THREE.PlaneGeometry(1.03, 1.0), m: M4(-1.24, 0.5, 0.52, 0, Math.PI / 2, 0) },
+  ]);
+  const slabs = new THREE.InstancedMesh(slabG, new THREE.MeshStandardMaterial({ color: '#cbbd9c', roughness: 0.8 }), balc.length);
+  const rails = new THREE.InstancedMesh(railG, new THREE.MeshStandardMaterial({ map: railTex, transparent: true, alphaTest: 0.05, side: THREE.DoubleSide, roughness: 0.3, metalness: 0.5, depthWrite: false }), balc.length);
+  balc.forEach(([x, y, z, r], i) => { m4.compose(p.set(x, y, z), q.setFromAxisAngle(up, r), sc.set(1, 1, 1)); slabs.setMatrixAt(i, m4); rails.setMatrixAt(i, m4); });
+  slabs.castShadow = slabs.receiveShadow = HIGH(); scene.add(slabs, rails);
+
+  // --- rooftop billboards with Persian ads, lit at night
+  const ADS = [
+    ['شیرِ پاک‌دشت', 'طعمِ صبحِ ایران', '#e9f4ff', '#1b5fa8'], ['بیمه‌ی آسمان', 'با خیالِ راحت برانید', '#0f3d6b', '#ffd34d'], ['نوشابه‌ی پارس', 'خنکِ خنک!', '#c2121c', '#ffffff'],
+    ['همراهِ کلان', 'اینترنتِ نامحدود · ۵G', '#5b1fa6', '#ffffff'], ['فرشِ دستبافِ کاشان', 'هنرِ ماندگار', '#7a1f24', '#f2d49b'], ['چای بهارِ لاهیجان', 'یک استکان آرامش', '#1d6b3a', '#fff6d0'],
+    ['پیتزا کلان', 'تحویل در ۳۰ دقیقه', '#ff7a00', '#1a1a1a'], ['کنسرتِ بزرگ', 'برجِ میلاد · پنج‌شنبه', '#121212', '#ff3d8b'],
+  ];
+  const adMats = ADS.map(([t1, t2, bg, fg]) => {
+    const c = document.createElement('canvas'); c.width = 1024; c.height = 400; const g = c.getContext('2d');
+    const paintAd = () => {
+      const gr = g.createLinearGradient(0, 0, 1024, 400); gr.addColorStop(0, bg); gr.addColorStop(1, _c1.set(bg).multiplyScalar(0.6).getStyle()); g.fillStyle = gr; g.fillRect(0, 0, 1024, 400);
+      g.fillStyle = 'rgba(255,255,255,.08)'; g.beginPath(); g.arc(150, 200, 260, 0, 7); g.fill();
+      fontTxt(g, t1, 560, 160, 120, fg); g.globalAlpha = 0.85; fontTxt(g, t2, 560, 300, 64, fg); g.globalAlpha = 1;
+      g.strokeStyle = 'rgba(255,255,255,.5)'; g.lineWidth = 10; g.strokeRect(5, 5, 1014, 390); t.needsUpdate = true;
+    };
+    const t = new THREE.CanvasTexture(c); t.anisotropy = ANISO; paintAd(); if (document.fonts) document.fonts.ready.then(paintAd);
+    const m = new THREE.MeshStandardMaterial({ map: t, emissiveMap: t, emissive: new THREE.Color(1, 1, 1), emissiveIntensity: 0.15, roughness: 0.5 }); signMats.push(m); return m;
+  });
+  const frameMat = new THREE.MeshStandardMaterial({ color: '#4a4f57', metalness: 0.7, roughness: 0.5 });
+  const legsG = mergeParts([{ g: new THREE.BoxGeometry(0.25, 3.2, 0.25), m: M4(-3.2, 1.6, 0) }, { g: new THREE.BoxGeometry(0.25, 3.2, 0.25), m: M4(3.2, 1.6, 0) }, { g: new THREE.BoxGeometry(9.4, 0.12, 0.5), m: M4(0, 3.1, 0.25) }, { g: new THREE.BoxGeometry(9.4, 3.9, 0.2), m: M4(0, 5.05, -0.12) }]);
+  const boards = ADS.map(() => []), legs = [];
+  const cand = bldList.filter((b) => !b.y0 && !b.far && b.h > 14 && b.style !== 'glass' && Math.min(b.w, b.d) > 11);
+  for (let i = 0; i < Math.min(cand.length, HIGH() ? 34 : 18); i++) {
+    const b = cand.splice(randi(0, cand.length - 1), 1)[0], dir = randi(0, 3), r = [0, Math.PI / 2, Math.PI, -Math.PI / 2][dir];
+    const off = (dir % 2 ? b.w : b.d) / 2 - 2.2, x = b.cx + Math.sin(r) * off, z = b.cz + Math.cos(r) * off;
+    legs.push([x, b.h + 0.35, z, r]); boards[i % ADS.length].push([x, b.h + 0.35, z, r]);
+  }
+  const lm = new THREE.InstancedMesh(legsG, frameMat, legs.length); legs.forEach(([x, y, z, r], i) => { m4.compose(p.set(x, y, z), q.setFromAxisAngle(up, r), sc.set(1, 1, 1)); lm.setMatrixAt(i, m4); }); lm.castShadow = HIGH(); scene.add(lm);
+  const boardG = new THREE.PlaneGeometry(9.2, 3.6).translate(0, 5.05, 0.0);
+  boards.forEach((list, k) => { if (!list.length) return; const im = new THREE.InstancedMesh(boardG, adMats[k], list.length); list.forEach(([x, y, z, r], i) => { m4.compose(p.set(x, y, z), q.setFromAxisAngle(up, r), sc.set(1, 1, 1)); im.setMatrixAt(i, m4); }); scene.add(im); });
+
+  // --- traffic lights: one per approach, on the near-right corner, arm over the lanes (right-hand traffic)
+  const lights = [], CO = ROAD / 2 + 0.7;
+  for (const n of NODES) for (const [fx, fz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+    const rx = -fz, rz = fx; // right of the driver, for heading (fx, fz)
+    const from = nodeAt(n.i - fx, n.j - fz); if (!from) continue;
+    const cx = n.x - fx * CO + rx * CO, cz = n.z - fz * CO + rx * 0 + rz * CO;
+    if (cx < H0 + ROAD || cx > -H0 - ROAD || cz < H0 + ROAD || cz > -H0 - ROAD) continue;
+    lights.push({ x: cx, z: cz, r: Math.atan2(-rx, -rz), axis: fx !== 0 ? 0 : 1 });
+  }
+  const tlPoleG = mergeParts([
+    { g: new THREE.CylinderGeometry(0.1, 0.13, 6.2, 8), m: M4(0, 3.1, 0) },
+    { g: new THREE.CylinderGeometry(0.07, 0.07, 6.2, 8), m: M4(0, 6.0, 3.0, Math.PI / 2, 0, 0) },
+    { g: new THREE.BoxGeometry(0.45, 1.25, 0.32), m: M4(0, 5.35, 5.6) },
+    { g: new THREE.BoxGeometry(0.4, 1.0, 0.3), m: M4(-0.32, 2.9, 0.0) },
+  ]);
+  const tlPole = new THREE.InstancedMesh(tlPoleG, new THREE.MeshStandardMaterial({ color: '#2c3036', metalness: 0.6, roughness: 0.45 }), lights.length);
+  const lampG = new THREE.CircleGeometry(0.14, 14);
+  const tlLamp = new THREE.InstancedMesh(lampG, new THREE.MeshBasicMaterial({ color: '#ffffff', toneMapped: false }), lights.length * 3);
+  lights.forEach((L, i) => {
+    m4.compose(p.set(L.x, SIDEWALK_H, L.z), q.setFromAxisAngle(up, L.r), sc.set(1, 1, 1)); tlPole.setMatrixAt(i, m4);
+    for (let k = 0; k < 3; k++) { const lm2 = M4(0.235, 5.72 - k * 0.37, 5.6, 0, Math.PI / 2, 0); tlLamp.setMatrixAt(i * 3 + k, m4.clone().multiply(lm2)); }
+    addBox(L.x - 0.15, L.z - 0.15, L.x + 0.15, L.z + 0.15, 6.5);
+  });
+  tlPole.castShadow = HIGH(); scene.add(tlPole, tlLamp);
+  const TL_ON = [new THREE.Color(4, 0.25, 0.2), new THREE.Color(4, 2.6, 0.2), new THREE.Color(0.3, 4, 1.2)], TL_OFF = [new THREE.Color(0.18, 0.03, 0.03), new THREE.Color(0.18, 0.12, 0.02), new THREE.Color(0.02, 0.15, 0.06)];
+  let tlPhase = -1;
+  STREET.updateLights = (t) => {
+    const c = t % 24, ph = c < 9 ? 0 : c < 11.5 ? 1 : c < 12 ? 2 : c < 21 ? 3 : c < 23.5 ? 4 : 5; // axis 0 green/yellow, all red, axis 1 green/yellow, all red
+    if (ph === tlPhase) return; tlPhase = ph;
+    lights.forEach((L, i) => {
+      const state = L.axis === 0 ? (ph === 0 ? 2 : ph === 1 ? 1 : 0) : (ph === 3 ? 2 : ph === 4 ? 1 : 0); // 0 red, 1 yellow, 2 green
+      for (let k = 0; k < 3; k++) tlLamp.setColorAt(i * 3 + k, (k === 0 && state === 0) || (k === 1 && state === 1) || (k === 2 && state === 2) ? TL_ON[k] : TL_OFF[k]);
+    });
+    tlLamp.instanceColor.needsUpdate = true;
+  };
+  STREET.updateLights(0);
+
+  // --- parked cars along the curbs, baked into a few static draws
+  const byMat = new Map(), parked = [];
+  const slots = [];
+  for (let bx = 0; bx < N; bx++) for (let bz = 0; bz < N; bz++) {
+    const x0 = bmin(bx), z0 = bmin(bz), x1 = bmax(bx), z1 = bmax(bz);
+    for (let s = 14; s < BLOCK - 13; s += 6.2) {
+      if (Math.abs(s - BLOCK / 2) < 7) continue;
+      slots.push([x0 + s, z0 - 1.25, Math.PI / 2], [x0 + s, z1 + 1.25, -Math.PI / 2], [x0 - 1.25, z0 + s, Math.PI], [x1 + 1.25, z0 + s, 0]);
+    }
+  }
+  const nPark = HIGH() ? 150 : 60, kinds = ['pride', 'pride', 'p206', 'samand', 'samand', 'dena', 'benz', 'suv', 'taxi', 'van'];
+  for (let i = 0; i < nPark && slots.length; i++) {
+    const [x, z, h] = slots.splice(randi(0, slots.length - 1), 1)[0], type = pick(kinds), T = CARS[type];
+    const built = buildCar(type, type === 'taxi' ? '#f2c419' : pick(TRAFFIC_COLORS)); built.root.position.set(x, 0, z); built.root.rotation.y = h + (Math.random() < 0.5 ? 0 : 0); built.root.updateMatrixWorld(true);
+    built.root.traverse((o) => { if (!o.isMesh || Array.isArray(o.material)) return; if (!byMat.has(o.material)) byMat.set(o.material, []); byMat.get(o.material).push({ g: o.geometry, m: o.matrixWorld.clone() }); });
+    const hw = Math.abs(Math.sin(h)) > 0.5 ? [T.len / 2, T.wid / 2] : [T.wid / 2, T.len / 2];
+    addBox(x - hw[0], z - hw[1], x + hw[0], z + hw[1], 1.6);
+    parked.push(built);
+  }
+  for (const [mat, parts] of byMat) { const mesh = new THREE.Mesh(mergeParts(parts), mat); mesh.castShadow = HIGH() && mat !== CM.blob; mesh.receiveShadow = HIGH(); if (mat === CM.blob) mesh.renderOrder = 1; scene.add(mesh); }
+}
+
 function stepCar(c, inp, dt) {
   const T = c.T, fx = Math.sin(c.h), fz = Math.cos(c.h);
   let vf = c.vx * fx + c.vz * fz, vl = c.vx * fz - c.vz * fx;
@@ -1266,6 +1461,7 @@ function stepCar(c, inp, dt) {
   c.body.rotation.z = c.T.bike ? clamp(-c.steer * vf * 0.03, -0.5, 0.5) : bodyRoll;
   if (!c.T.bike && dt > 0) { const acc = (vf - c.pvf) / dt; c.pitch += (clamp(acc * 0.004, -0.045, 0.035) - c.pitch) * Math.min(1, dt * 6); c.body.rotation.x = -c.pitch; }
   c.pvf = vf; c.spin += (vf * dt) / 0.32;
+  if (c.tail) c.tail.material = (inp.t < 0 && vf > 0.5) || inp.hb ? CM.brake : CM.tail;
   for (const w of c.wheels) { w.spin.rotation.x = c.spin; if (w.front) w.pivot.rotation.y = c.steer * 0.85; }
 }
 function carCollisions() {
@@ -1286,7 +1482,7 @@ function carCollisions() {
 
 // ============================================================ humans: rigged glTF characters with Mixamo animations
 // male: Ready Player Me avatar · female: Mixamo "Michelle" · police / animation source: Mixamo "Soldier"
-const MODELS = { male: null, female: null, police: null };
+const MODELS = { male: null, female: null, police: null, sport: null };
 const HEIGHTS = { male: 1.78, female: 1.68, police: 1.82 };
 const boneKey = (n) => n.replace(/^mixamorig:?/, '');
 // Retarget a clip between rigs whose rest poses differ: replay the source animation in world space
@@ -1395,6 +1591,7 @@ const assetWaiters = [];
 function loadAssets(onProgress) {
   if (!THREE.GLTFLoader || !THREE.SkeletonUtils) { assetsReady = true; return Promise.resolve(false); }
   const loader = new THREE.GLTFLoader(), files = { male: 'assets/readyplayer.me.json', female: 'assets/Michelle.json', police: 'assets/Soldier.json' };
+  if (!coarse) files.sport = 'assets/sportcar.json';
   // textures are embedded data URIs: decode them with <img> rather than fetch()+createImageBitmap
   const cib = window.createImageBitmap; try { window.createImageBitmap = undefined; } catch {}
   const prog = {}, keys = Object.keys(files);
@@ -1413,6 +1610,7 @@ function loadAssets(onProgress) {
           for (const n of ['Idle', 'Walk', 'Run']) MODELS[kind].clips[n] = retargetClip(by(n), MODELS.police, MODELS[kind]);
         }
       }
+      if (raw.sport) MODELS.sport = raw.sport.scene;
     } catch (e) { console.warn('model setup failed', e); MODELS.male = MODELS.female = MODELS.police = null; }
     assetsReady = true; assetWaiters.splice(0).forEach((f) => f());
     return true;
@@ -1555,8 +1753,8 @@ function spawnTraffic(n) {
     c.driver = 'ai'; c.ai = { kind: 'traffic', from: a, to: b, max: rand(11, 15) }; laneOffset(c); cars.push(c);
   }
 }
-function laneOffset(c) { const a = c.ai.from, b = c.ai.to, dx = Math.sign(b.x - a.x), dz = Math.sign(b.z - a.z); c.p.x += dz * 4; c.p.z += -dx * 4; c.sync(); }
-function laneTarget(a, b) { const dx = Math.sign(b.x - a.x), dz = Math.sign(b.z - a.z); return { x: b.x + dz * 4 - dx * 2, z: b.z - dx * 4 - dz * 2 }; }
+function laneOffset(c) { const a = c.ai.from, b = c.ai.to, dx = Math.sign(b.x - a.x), dz = Math.sign(b.z - a.z); c.p.x -= dz * 4; c.p.z += dx * 4; c.sync(); } // right-hand traffic
+function laneTarget(a, b) { const dx = Math.sign(b.x - a.x), dz = Math.sign(b.z - a.z); return { x: b.x - dz * 4 - dx * 2, z: b.z + dx * 4 - dz * 2 }; }
 function lookAhead(c, range = 13) {
   const fx = Math.sin(c.h), fz = Math.cos(c.h); let lim = Infinity;
   const test = (x, z, r) => { const dx = x - c.p.x, dz = z - c.p.z, f = dx * fx + dz * fz, l = Math.abs(dx * fz - dz * fx); if (f > 0 && f < range && l < 2.2 + r * 0.3) lim = Math.min(lim, Math.max(0, (f - 5) * 0.9)); };
@@ -2522,12 +2720,13 @@ function frame(now) {
   requestAnimationFrame(frame);
   const dt = clamp((now - last) / 1000, 0, 0.05); last = now;
   const gh = (dt / DAY_SECONDS) * 24; gameHour = (gameHour + gh) % 24; totalHours += gh;
-  applySky();
+  applySky(); skyU.time.value = now / 1000;
   if (started) {
     updatePlayer(dt); updateJob(dt); updateWanted(dt); updatePrompt(); updateGPS(dt); passiveIncome(gh);
     if (Math.floor(totalHours / 3) !== priceHour) rollPrices();
     sendPresence(dt); saveGame(dt);
   }
+  STREET.updateLights(now / 1000);
   updateTraffic(dt); carCollisions(); updatePeds(dt); pedHits(); updateGhosts(dt); updateSmoke(dt);
   for (let i = cars.length - 1; i >= 0; i--) if (cars[i].remove && cars[i] !== player.car) { cars[i].dispose(); const pi = police.indexOf(cars[i]); if (pi >= 0) police.splice(pi, 1); if (cars[i] === myCar) myCar = null; cars.splice(i, 1); }
   // night lights
