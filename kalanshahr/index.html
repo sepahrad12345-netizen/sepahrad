@@ -1394,11 +1394,14 @@ let assetsReady = false;
 const assetWaiters = [];
 function loadAssets(onProgress) {
   if (!THREE.GLTFLoader || !THREE.SkeletonUtils) { assetsReady = true; return Promise.resolve(false); }
-  const loader = new THREE.GLTFLoader(), files = { male: 'assets/readyplayer.me.glb', female: 'assets/Michelle.glb', police: 'assets/Soldier.glb' };
+  const loader = new THREE.GLTFLoader(), files = { male: 'assets/readyplayer.me.json', female: 'assets/Michelle.json', police: 'assets/Soldier.json' };
+  // textures are embedded data URIs: decode them with <img> rather than fetch()+createImageBitmap
+  const cib = window.createImageBitmap; try { window.createImageBitmap = undefined; } catch {}
   const prog = {}, keys = Object.keys(files);
   const tick = () => onProgress && onProgress(keys.reduce((s, k) => s + (prog[k] || 0), 0) / keys.length);
   const one = (k) => new Promise((res) => loader.load(files[k], (g) => { prog[k] = 1; tick(); res([k, g]); }, (e) => { if (e.total) { prog[k] = e.loaded / e.total; tick(); } }, () => { prog[k] = 1; tick(); res([k, null]); }));
   return Promise.all(keys.map(one)).then((list) => {
+    try { window.createImageBitmap = cib; } catch {}
     const raw = Object.fromEntries(list);
     try {
       if (raw.police) {
