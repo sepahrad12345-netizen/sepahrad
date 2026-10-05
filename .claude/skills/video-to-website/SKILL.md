@@ -36,7 +36,7 @@ If the user doesn't specify these, ask briefly or use sensible creative defaults
 
 ## Workflow
 
-**FFmpeg and FFprobe are already installed at `C:\Users\nateh\bin\` and on PATH. Do NOT reinstall.**
+**FFmpeg and FFprobe are required. Check with `ffmpeg -version`; if missing, install them with the system package manager (e.g. `apt install ffmpeg`, `brew install ffmpeg`, `winget install ffmpeg`).**
 
 ### Step 1: Analyze the Video
 
