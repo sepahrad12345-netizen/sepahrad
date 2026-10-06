@@ -282,7 +282,7 @@
   const canvas = document.getElementById("canvas");
   const ctx = canvas.getContext("2d");
   const FRAME_SPEED = 2.0;
-  const IMAGE_SCALE = 0.85;
+  const IMAGE_SCALE = 1; // full-bleed: this video has dark edges, so cover mode leaves no visible border
   let frames = [];
   let frameCount = 0;
   let bgColor = "#000";
