@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>صدای رود تهران | فروش میکروفون و هدفون رود</title>
+  <meta name="description" content="فروشگاه تخصصی میکروفون و هدفون RØDE در تهران. تست حضوری، مشاوره‌ی رایگان و راهنمای انتخاب برای پادکست، استریم، موسیقی و فیلم‌سازی.">
+  <meta name="theme-color" content="#050505">
+  <link rel="preload" href="fonts/vazirmatn/Vazirmatn-Variable.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="is-loading">
+  <a class="skip-link" href="#products">رفتن به محصولات</a>
+
+  <!-- Loader: waits for the hero frames -->
+  <div id="loader" role="status" aria-live="polite">
+    <p class="loader-brand">صدای رود تهران</p>
+    <div class="loader-track"><div id="loader-bar"></div></div>
+    <p id="loader-percent">۰٪</p>
+  </div>
+
+  <header class="site-header">
+    <a class="logo" href="#top" aria-label="صدای رود تهران، بازگشت به بالا">
+      <svg class="logo-mark" viewBox="0 0 28 40" aria-hidden="true"><g fill="currentColor"><rect x="0" y="14" width="2" height="12"/><rect x="5" y="8" width="2" height="24"/><rect x="10" y="2" width="2" height="36"/><rect x="15" y="0" width="2" height="40"/><rect x="20" y="6" width="2" height="28"/><rect x="25" y="12" width="2" height="16"/></g></svg>
+      <span class="logo-text" data-store="name">صدای رود تهران</span>
+    </a>
+    <p class="open-status" id="open-status"><span class="tally" aria-hidden="true"></span><span class="open-status-text">ساعت کاری</span></p>
+    <a class="btn btn-solid header-cta" href="#consult">مشاوره</a>
+    <button class="menu-toggle" id="menu-toggle" type="button" aria-expanded="false" aria-controls="menu" aria-label="باز کردن منو">
+      <span class="menu-toggle-bar"></span><span class="menu-toggle-bar"></span>
+    </button>
+  </header>
+
+  <!-- Full-screen menu -->
+  <div class="menu" id="menu" hidden>
+    <nav class="menu-nav" aria-label="بخش‌های صفحه">
+      <ol>
+        <li><a href="#products"><sup>۰۱</sup><span>محصولات</span></a></li>
+        <li><a href="#story"><sup>۰۲</sup><span>داستان ما</span></a></li>
+        <li><a href="#consult"><sup>۰۳</sup><span>مشاوره</span></a></li>
+        <li><a href="#contact"><sup>۰۴</sup><span>تماس</span></a></li>
+      </ol>
+    </nav>
+    <div class="menu-info">
+      <p class="ruled" data-store="address"></p>
+      <p class="ruled"><a data-store="phone" dir="ltr"></a><br><span data-store="hours"></span></p>
+    </div>
+  </div>
+
+  <!-- Social rail -->
+  <nav class="social-rail" aria-label="شبکه‌های اجتماعی">
+    <a data-store="instagram" target="_blank" rel="noopener">اینستاگرام</a>
+    <a data-store="telegram" target="_blank" rel="noopener">تلگرام</a>
+    <span class="rail-line" aria-hidden="true"></span>
+  </nav>
+  <div class="progress" aria-hidden="true"><span id="progress-bar"></span></div>
+
+  <main id="top">
+    <!-- Hero: standalone, then the canvas wipes in as it scrolls away -->
+    <section class="hero" id="hero">
+      <div class="hero-inner">
+        <h1 class="hero-heading">
+          <span class="hero-line">صدایت را</span>
+          <span class="hero-line">همان‌طور که هست</span>
+          <span class="hero-line">ضبط کن</span>
+        </h1>
+        <p class="hero-tagline">فروشگاه تخصصی میکروفون و هدفون RØDE در تهران. قبل از خرید، با صدای خودت امتحانش کن.</p>
+      </div>
+      <p class="scroll-hint" aria-hidden="true"><span>اسکرول کن</span><svg width="14" height="22" viewBox="0 0 14 22"><path d="M7 1v18M1 13l6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></p>
+    </section>
+
+    <!-- Fixed layers driven by the scroll sequence -->
+    <div class="canvas-wrap" aria-hidden="true"><canvas id="canvas"></canvas></div>
+    <div class="marquee-wrap" aria-hidden="true">
+      <p class="marquee-text">پادکست&emsp;استریم&emsp;موسیقی&emsp;فیلم‌سازی&emsp;گویندگی&emsp;پادکست&emsp;استریم&emsp;موسیقی</p>
+    </div>
+
+    <div id="scroll-container" class="scroll-container">
+      <section class="beat align-start" data-enter="8" data-leave="34" data-animation="slide-in">
+        <div class="beat-inner">
+          <h2 class="beat-heading">جزئیات را می‌شنوی</h2>
+          <p class="beat-body">نویز پایین میکروفون‌های رود یعنی نفس، لرزش صدا و طنین اتاق همان‌طور ضبط می‌شود که بوده.</p>
+        </div>
+      </section>
+      <section class="beat align-end" data-enter="40" data-leave="64" data-animation="scale-up">
+        <div class="beat-inner">
+          <h2 class="beat-heading">برای هر کاری، میکروفون خودش</h2>
+          <p class="beat-body">پادکست، استریم، موسیقی یا فیلم‌برداری؛ بگو چه می‌سازی تا مدل مناسبش را نشانت بدهیم.</p>
+        </div>
+      </section>
+      <section class="beat align-start" data-enter="72" data-leave="100" data-animation="clip-reveal" data-persist="true">
+        <div class="beat-inner">
+          <h2 class="beat-heading">قبل از خرید، امتحانش کن</h2>
+          <p class="beat-body">در فروشگاه با صدای خودت تست کن و بعد تصمیم بگیر.</p>
+          <a class="btn btn-solid beat-cta" href="#consult">رزرو مشاوره</a>
+        </div>
+      </section>
+    </div>
+
+    <!-- Products -->
+    <section class="section products" id="products" aria-labelledby="products-title">
+      <div class="section-head">
+        <h2 class="section-title" id="products-title">محصولات</h2>
+        <div class="tabs" role="tablist" aria-label="دسته‌ی محصولات" id="product-tabs"></div>
+      </div>
+      <div id="product-panel" role="tabpanel" class="product-list"></div>
+    </section>
+
+    <!-- Story -->
+    <section class="section story" id="story" aria-labelledby="story-title">
+      <h2 class="section-title" id="story-title">داستان ما</h2>
+      <blockquote class="story-quote">
+        <p>میکروفونی می‌فروشیم که با آن ضبط کنی، نه میکروفونی که در کارتن بماند.</p>
+      </blockquote>
+      <div class="story-body">
+        <p>از یک میز کوچک در پاساژی در مرکز تهران شروع کردیم؛ خودمان پادکست ضبط می‌کردیم و می‌دیدیم دوستان‌مان میکروفون‌هایی می‌خرند که به کارشان نمی‌آید.</p>
+        <p>حالا یک اتاق تست داریم. هر میکروفونی را که بخواهی، همان‌جا با صدای خودت و روی هدفون استودیویی امتحان می‌کنی و فایل ضبط‌شده را هم با خودت می‌بری.</p>
+        <p>فقط محصول اصل با گارانتی معتبر می‌فروشیم و بعد از خرید هم کنارت هستیم؛ از تنظیم گین تا انتخاب اینترفیس.</p>
+      </div>
+    </section>
+
+    <!-- Consultation form -->
+    <section class="section consult" id="consult" aria-labelledby="consult-title">
+      <div class="consult-intro">
+        <h2 class="section-title" id="consult-title">مشاوره‌ی رایگان</h2>
+        <p>بگو برای چه کاری میکروفون می‌خواهی. همکاران ما در ساعت کاری با تو تماس می‌گیرند.</p>
+      </div>
+      <form class="consult-form" id="consult-form" novalidate>
+        <div class="field">
+          <label for="f-name">نام</label>
+          <input id="f-name" name="name" type="text" autocomplete="name" required aria-describedby="e-name">
+          <p class="field-error" id="e-name"></p>
+        </div>
+        <div class="field">
+          <label for="f-phone">شماره‌ی موبایل</label>
+          <input id="f-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" dir="ltr" placeholder="۰۹۱۲۱۲۳۴۵۶۷" required aria-describedby="e-phone">
+          <p class="field-error" id="e-phone"></p>
+        </div>
+        <div class="field">
+          <label for="f-product">محصول مورد نظر</label>
+          <select id="f-product" name="product">
+            <option value="">هنوز نمی‌دانم</option>
+          </select>
+        </div>
+        <fieldset class="field field-choice">
+          <legend>کاربرد</legend>
+          <div class="choices">
+            <label><input type="radio" name="use" value="podcast" checked> پادکست</label>
+            <label><input type="radio" name="use" value="stream"> استریم</label>
+            <label><input type="radio" name="use" value="music"> موسیقی</label>
+            <label><input type="radio" name="use" value="video"> فیلم‌سازی</label>
+          </div>
+        </fieldset>
+        <div class="field field-wide">
+          <label for="f-message">توضیحات <span class="optional">(اختیاری)</span></label>
+          <textarea id="f-message" name="message" rows="4"></textarea>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-solid" type="submit">ثبت درخواست مشاوره</button>
+          <p class="form-success" id="form-success" role="status" hidden>درخواست مشاوره ثبت شد. به‌زودی با شماره‌ای که دادی تماس می‌گیریم.</p>
+        </div>
+      </form>
+    </section>
+
+    <!-- Contact -->
+    <section class="section contact" id="contact" aria-labelledby="contact-title">
+      <h2 class="section-title" id="contact-title">تماس و آدرس</h2>
+      <dl class="contact-list">
+        <div><dt>آدرس</dt><dd data-store="address"></dd></div>
+        <div><dt>تلفن</dt><dd><a data-store="phone" dir="ltr"></a></dd></div>
+        <div><dt>موبایل و واتس‌اپ</dt><dd dir="ltr" data-store="mobile"></dd></div>
+        <div><dt>ساعت کاری</dt><dd data-store="hours"></dd></div>
+      </dl>
+      <div class="contact-actions">
+        <a class="btn btn-ghost" data-store="map" target="_blank" rel="noopener">مسیریابی در نقشه</a>
+        <a class="btn btn-ghost" data-store="instagram" target="_blank" rel="noopener">اینستاگرام</a>
+        <a class="btn btn-ghost" data-store="telegram" target="_blank" rel="noopener">تلگرام</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p><span data-store="name">صدای رود تهران</span>، فروشگاه مستقل محصولات RØDE. نام و نشان RØDE متعلق به RØDE Microphones است.</p>
+  </footer>
+
+  <script src="js/content.js"></script>
+  <script src="vendor/lenis.min.js"></script>
+  <script src="vendor/gsap.min.js"></script>
+  <script src="vendor/ScrollTrigger.min.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
