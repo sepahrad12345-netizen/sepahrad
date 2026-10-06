@@ -1,12 +1,9 @@
 /* ==========================================================================
    Fonts
-   Morabba: drop the files into fonts/morabba/ with these names.
-   Until they exist, the self-hosted Vazirmatn fallback is shown.
+   Morabba (Bold only) for headings and display text; Vazirmatn for body
+   text and for Latin characters, which Morabba does not include.
    ========================================================================== */
-@font-face { font-family: "Morabba"; src: url("../fonts/morabba/Morabba-Regular.woff2") format("woff2"); font-weight: 400; font-display: swap; }
-@font-face { font-family: "Morabba"; src: url("../fonts/morabba/Morabba-Medium.woff2") format("woff2"); font-weight: 500; font-display: swap; }
-@font-face { font-family: "Morabba"; src: url("../fonts/morabba/Morabba-Bold.woff2") format("woff2"); font-weight: 700; font-display: swap; }
-@font-face { font-family: "Morabba"; src: url("../fonts/morabba/Morabba-Black.woff2") format("woff2"); font-weight: 900; font-display: swap; }
+@font-face { font-family: "Morabba"; src: url("../fonts/morabba/Morabba-Bold.woff2") format("woff2"); font-weight: 700 900; font-display: swap; }
 @font-face { font-family: "Vazirmatn"; src: url("../fonts/vazirmatn/Vazirmatn-Variable.woff2") format("woff2-variations"), url("../fonts/vazirmatn/Vazirmatn-Variable.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
 
 /* ==========================================================================
@@ -39,7 +36,8 @@
   --outline: rgba(237,235,230,0.38);
   --focus: var(--paper);
 
-  --font: "Morabba", "Vazirmatn", Tahoma, sans-serif;
+  --font: "Vazirmatn", Tahoma, sans-serif;
+  --font-display: "Morabba", "Vazirmatn", Tahoma, sans-serif;
 
   /* type scale (ratio ~1.333) */
   --fs-sm: 0.875rem;
@@ -104,6 +102,14 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .btn-solid:hover { background: var(--accent-hover); }
 .btn-ghost { border-color: var(--line); color: var(--text); background: transparent; }
 .btn-ghost:hover { border-color: var(--text); }
+
+/* Display font */
+.loader-brand, .logo-text, .hero-heading, .beat-heading, .marquee-text, .section-title,
+.tab, .menu-nav a, .story-quote, .product-name, .contact-list dd {
+  font-family: var(--font-display);
+  word-spacing: 0.12em; /* Morabba's space glyph is narrow */
+}
+.tab sup, .menu-nav sup { font-family: var(--font); }
 
 /* ==========================================================================
    Loader
@@ -392,6 +398,8 @@ body.past-sequence .marquee-wrap { visibility: hidden; }
   .scroll-container { height: 350vh; }
   .beat.align-start, .beat.align-end { padding-inline: var(--gutter); }
   .beat-inner { max-width: none; padding: 1.5rem; background: rgba(5,5,5,0.82); border-radius: 0.75rem; }
+  .tabs { gap: 1rem; }
+  .tab { font-size: var(--fs-lg); }
   .product { grid-template-columns: minmax(0, 1fr); }
   .product-art { order: -1; aspect-ratio: 16 / 10; }
   .consult-form { grid-template-columns: minmax(0, 1fr); }
